@@ -15,13 +15,13 @@ WS_URL = f"ws://{AWS_EC2_IP}:{AWS_EC2_PORT}/ws/laptop"
 
 async def start_agent():
     print(f"🔄 Connecting Laptop Agent to AWS EC2: {WS_URL} ...")
-    extra_headers = {
+    headers = {
         "x-api-key": SECRET_API_KEY
     }
     
     while True:
         try:
-            async with websockets.connect(WS_URL, extra_headers=extra_headers) as websocket:
+            async with websockets.connect(WS_URL, additional_headers=headers) as websocket:
                 print("🟢 Successfully authenticated & connected to AWS EC2 Relay Server!")
                 
                 async def send_status_loop():
