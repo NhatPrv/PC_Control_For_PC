@@ -1,6 +1,6 @@
 @echo off
 echo ====================================================================
-echo BUILDING PC CONTROL ALL-IN-ONE (WINDOWS SETUP .EXE & ANDROID .APK)
+echo BUILDING PC CONTROL ALL-IN-ONE (WINDOWS SETUP .EXE AND ANDROID .APK)
 echo ====================================================================
 
 echo 1/3. Building Flutter Windows Executable...
