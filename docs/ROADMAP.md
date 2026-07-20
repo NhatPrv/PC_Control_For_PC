@@ -2,28 +2,33 @@
 
 Lộ trình chiến lược chi tiết triển khai hệ thống điều khiển máy tính từ xa **Device_Control_AI** qua mạng cục bộ (LAN).
 
+> **Ký hiệu trạng thái**:
+> - `[x]`: Đã hoàn thành (Done)
+> - `[/]`: Đang thực hiện (In Progress)
+> - `[ ]`: Chưa bắt đầu (Pending)
+
 ---
 
 ## 📌 Phase 1: Environment Setup & Architecture Definition
 Giai đoạn khởi tạo môi trường, cấu hình dự án và định nghĩa chuẩn giao tiếp.
 
-- [ ] **1.1 Workspace Setup**
-  - [ ] Khởi tạo dự án Flutter `device_control_app` cho Android/iOS.
-  - [ ] Khởi tạo dự án Python backend với thư mục cấu trúc mô hình FastAPI.
-  - [ ] Thiết lập file cấu hình môi trường `.env` và các phụ thuộc (`requirements.txt`, `pubspec.yaml`).
-- [ ] **1.2 Architecture & Protocol Definition**
-  - [ ] Thống nhất định dạng JSON Payload cho REST API `/api/control` và `/api/status`.
-  - [ ] Định nghĩa cơ chế phát hiện Hệ điều hành Host (Windows vs Linux).
-  - [ ] Xác định chiến lược bảo mật cơ bản (API Key / Local Network Restriction).
+- [x] **1.1 Workspace Setup**
+  - [x] Khởi tạo dự án Flutter `mobile_app` cho Android/iOS.
+  - [/] Khởi tạo dự án Python backend với thư mục cấu trúc mô hình FastAPI.
+  - [x] Thiết lập cấu hình tài liệu dự án, lộ trình & các tệp bỏ qua rác (.gitignore, .ignore,...).
+- [x] **1.2 Architecture & Protocol Definition**
+  - [x] Thống nhất định dạng JSON Payload cho REST API `/api/control` và `/api/status`.
+  - [x] Định nghĩa cơ chế phát hiện Hệ điều hành Host (Windows vs Linux).
+  - [x] Xác định chiến lược bảo mật cơ bản (API Key / Local Network Restriction).
 
 ---
 
 ## 📌 Phase 2: Python Backend (FastAPI) & Cross-Platform Command Mappings
 Giai đoạn xây dựng RESTful Server bằng Python và thực thi lệnh hệ thống theo từng HĐH.
 
-- [ ] **2.1 OS Detection & Abstraction Layer**
-  - [ ] Viết module phát hiện HĐH sử dụng thư viện `platform`.
-  - [ ] Xây dựng interface/abstract class định nghĩa tập lệnh hệ thống (Power, Brightness, Volume, Status).
+- [/] **2.1 OS Detection & Abstraction Layer**
+  - [/] Viết module phát hiện HĐH sử dụng thư viện `platform`.
+  - [/] Xây dựng interface/abstract class định nghĩa tập lệnh hệ thống (Power, Brightness, Volume, Status).
 - [ ] **2.2 Platform Specific Implementations**
   - [ ] **Windows Controller**:
     - [ ] Lệnh Shutdown, Restart, Sleep via `subprocess` / `os.system`.
@@ -43,7 +48,7 @@ Giai đoạn xây dựng RESTful Server bằng Python và thực thi lệnh hệ
 ## 📌 Phase 3: Flutter App Integration
 Xây dựng giao diện ứng dụng di động Flutter và kết nối với Backend Python.
 
-- [ ] **3.1 UI/UX Design & Layout**
+- [/] **3.1 UI/UX Design & Layout**
   - [ ] Màn hình Cấu hình IP Host & Kết nối.
   - [ ] Dashboard chính: Thẻ thông số Hệ thống (CPU, RAM, Pin).
   - [ ] Bộ điều khiển Sliders: Thanh trượt Chỉnh Âm lượng và Độ sáng màn hình.
