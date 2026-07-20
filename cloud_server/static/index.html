@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PC Control - Điều Khiển Máy Tính Từ Xa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: #020617;
+            color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow-x: hidden;
+        }
+
+        /* Ambient Glow Background */
+        .glow {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, rgba(2, 6, 23, 0) 70%);
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        header {
+            padding: 24px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            z-index: 10;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(6, 182, 212, 0.15);
+            border: 1px solid rgba(6, 182, 212, 0.4);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #10b981;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #10b981;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 60px 20px;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        .hero-title {
+            font-size: 52px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: 18px;
+            color: #94a3b8;
+            max-width: 650px;
+            margin: 0 auto 40px;
+            line-height: 1.6;
+        }
+
+        /* Download Section Card */
+        .download-card {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card-title {
+            font-size: 22px;
+            margin-bottom: 24px;
+            font-weight: 600;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-download {
+            flex: 1;
+            min-width: 260px;
+            padding: 18px 24px;
+            border-radius: 16px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .btn-windows {
+            background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+            color: #ffffff;
+            box-shadow: 0 10px 25px rgba(6, 182, 212, 0.3);
+        }
+
+        .btn-windows:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(6, 182, 212, 0.5);
+        }
+
+        .btn-android {
+            background: rgba(30, 41, 59, 0.8);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-android:hover {
+            background: rgba(51, 65, 85, 0.9);
+            border-color: #10b981;
+            transform: translateY(-3px);
+            color: #10b981;
+        }
+
+        .btn-sub {
+            font-size: 11px;
+            font-weight: 400;
+            opacity: 0.8;
+            display: block;
+            margin-top: 2px;
+        }
+
+        /* Features Grid */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-top: 50px;
+            text-align: left;
+        }
+
+        .feature-item {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 16px;
+        }
+
+        .feature-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #06b6d4;
+        }
+
+        .feature-item h3 {
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+
+        .feature-item p {
+            font-size: 13px;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+
+        footer {
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="glow"></div>
+
+    <header>
+        <div class="logo">
+            <div class="logo-icon">💻</div>
+            <span>PC Control</span>
+        </div>
+        <div class="status-badge">
+            <div class="dot"></div>
+            <span>Cloud Relay Server Active</span>
+        </div>
+    </header>
+
+    <main>
+        <h1 class="hero-title">Điều Khiển Máy Tính Từ Xa Dễ Dàng</h1>
+        <p class="hero-subtitle">Giải pháp ghép nối 1-chạm bằng mã QR Code. Tải ứng dụng cho Máy tính Windows và Điện thoại Android bên dưới để bắt đầu trải nghiệm ngay lập tức!</p>
+
+        <div class="download-card">
+            <h2 class="card-title">Tải Về Ứng Dụng PC Control</h2>
+            <div class="btn-group">
+                <a href="/static/downloads/PC_Control_Setup_v1.0.0.exe" class="btn-download btn-windows" download>
+                    <span style="font-size: 24px;">💻</span>
+                    <div>
+                        <div>Tải Cho Windows</div>
+                        <span class="btn-sub">Bản Cài Đặt Setup.exe (~25MB)</span>
+                    </div>
+                </a>
+
+                <a href="/static/downloads/PC_Control_v1.0.0.apk" class="btn-download btn-android" download>
+                    <span style="font-size: 24px;">📱</span>
+                    <div>
+                        <div>Tải Cho Android</div>
+                        <span class="btn-sub">Bản Ứng Dụng APK (~20MB)</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <div class="features">
+            <div class="feature-item">
+                <div class="feature-icon">📷</div>
+                <h3>Ghép Nối Mã QR</h3>
+                <p>Mở camera điện thoại quét mã QR trên màn hình laptop để kết nối tự động trong 1 giây.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">🔒</div>
+                <h3>Bảo Mật Tuyệt Đối</h3>
+                <p>Xác thực mã Secret Key hai chiều và hủy Session tức thì khi nhấn Ngắt Kết Nối.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">🌐</div>
+                <h3>Chế Độ LAN & Remote</h3>
+                <p>Linh hoạt lựa chọn điều khiển trong cùng mạng Wi-Fi LAN hoặc điều khiển từ xa qua Cloud.</p>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        &copy; 2026 PC Control Team. Powered by High-Speed Cloud Relay Server.
+    </footer>
+</body>
+</html>

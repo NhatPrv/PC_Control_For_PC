@@ -3,10 +3,12 @@ import json
 import os
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 
-app = FastAPI(title="Device_Control_AI Cloud Relay Server (Multi-Tenant AWS EC2)")
+app = FastAPI(title="PC Control Cloud Relay Server (Multi-Tenant AWS EC2)")
 
 app.add_middleware(
     CORSMiddleware,
@@ -15,6 +17,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Phục vụ file tĩnh và Landing Page
+STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+if not os.path.exists(STATIC_DIR):
+    os.makedirs(STATIC_DIR)
+downloads_dir = os.path.join(STATIC_DIR, "downloads")
+if not os.path.exists(downloads_dir):
+    os.makedirs(downloads_dir)
+
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 SECRET_API_KEY = os.getenv("SECRET_API_KEY", "MyPrivateLaptopControlKey@2026")
 
@@ -32,6 +44,17 @@ class DisconnectRequest(BaseModel):
 def verify_api_key(x_api_key: Optional[str] = Header(None)):
     if SECRET_API_KEY and x_api_key != SECRET_API_KEY:
         raise HTTPException(status_code=401, detail="🔒 Access Denied: Invalid Secret API Key")
+
+@app.get("/")
+def read_root():
+    index_file = os.path.join(STATIC_DIR, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return {
+        "server": "PC Control AWS EC2 Multi-Tenant Relay",
+        "active_devices_count": len(active_laptops),
+        "active_device_ids": list(active_laptops.keys())
+    }
 
 @app.websocket("/ws/laptop")
 async def websocket_endpoint(websocket: WebSocket, device_id: Optional[str] = "default_device", api_key: Optional[str] = None):
@@ -62,17 +85,8 @@ async def websocket_endpoint(websocket: WebSocket, device_id: Optional[str] = "d
             latest_laptop_statuses[device_id]["status"] = "offline"
             latest_laptop_statuses[device_id]["connected"] = False
 
-@app.get("/")
-def root():
-    return {
-        "server": "Device_Control_AI AWS EC2 Multi-Tenant Relay",
-        "active_devices_count": len(active_laptops),
-        "active_device_ids": list(active_laptops.keys())
-    }
-
 @app.get("/api/status", dependencies=[Depends(verify_api_key)])
 def get_status(device_id: Optional[str] = None):
-    # Nếu không truyền device_id hoặc không khớp, tự chọn thiết bị active đầu tiên
     target_id = device_id
     if not target_id or target_id not in active_laptops:
         if active_laptops:
