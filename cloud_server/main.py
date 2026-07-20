@@ -136,6 +136,9 @@ async def disconnect_session(req: DisconnectRequest):
     if target_id and target_id in active_laptops:
         ws = active_laptops.pop(target_id)
         try:
+            # Gửi thông báo ngắt kết nối cho Laptop Agent dừng loop
+            await ws.send_text(json.dumps({"type": "disconnect_agent"}))
+            await asyncio.sleep(0.2)
             await ws.close(code=1000, reason="User disconnected session")
         except Exception:
             pass
