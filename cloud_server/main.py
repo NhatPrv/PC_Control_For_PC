@@ -18,7 +18,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Phục vụ file tĩnh và Landing Page
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 if not os.path.exists(STATIC_DIR):
     os.makedirs(STATIC_DIR)
@@ -105,7 +104,11 @@ def get_status(device_id: Optional[str] = None):
             "connected": False,
             "status": "offline"
         }
-    return latest_laptop_statuses.get(target_id, {"connected": True, "status": "online"})
+    
+    status_data = latest_laptop_statuses.get(target_id, {})
+    status_data["connected"] = True
+    status_data["status"] = "online"
+    return status_data
 
 @app.post("/api/control", dependencies=[Depends(verify_api_key)])
 async def send_control(req: ControlRequest):
@@ -124,6 +127,7 @@ async def send_control(req: ControlRequest):
         "value": req.value
     }
     await ws.send_text(json.dumps(command_payload))
+    print(f"⚡ Relayed action '{req.action}' value={req.value} to Laptop [{target_id}]")
     return {"status": "success", "message": f"Command '{req.action}' relayed to Laptop [{target_id}] successfully."}
 
 @app.post("/api/disconnect", dependencies=[Depends(verify_api_key)])
