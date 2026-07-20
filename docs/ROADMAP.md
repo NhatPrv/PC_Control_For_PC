@@ -14,7 +14,7 @@ Giai đoạn khởi tạo môi trường, cấu hình dự án và định nghĩ
 
 - [x] **1.1 Workspace Setup**
   - [x] Khởi tạo dự án Flutter `mobile_app` cho Android/iOS.
-  - [/] Khởi tạo dự án Python backend với thư mục cấu trúc mô hình FastAPI.
+  - [x] Khởi tạo dự án Python backend với thư mục cấu trúc mô hình FastAPI (`backend/`).
   - [x] Thiết lập cấu hình tài liệu dự án, lộ trình & các tệp bỏ qua rác (.gitignore, .ignore,...).
 - [x] **1.2 Architecture & Protocol Definition**
   - [x] Thống nhất định dạng JSON Payload cho REST API `/api/control` và `/api/status`.
@@ -26,22 +26,22 @@ Giai đoạn khởi tạo môi trường, cấu hình dự án và định nghĩ
 ## 📌 Phase 2: Python Backend (FastAPI) & Cross-Platform Command Mappings
 Giai đoạn xây dựng RESTful Server bằng Python và thực thi lệnh hệ thống theo từng HĐH.
 
-- [/] **2.1 OS Detection & Abstraction Layer**
-  - [/] Viết module phát hiện HĐH sử dụng thư viện `platform`.
-  - [/] Xây dựng interface/abstract class định nghĩa tập lệnh hệ thống (Power, Brightness, Volume, Status).
-- [ ] **2.2 Platform Specific Implementations**
-  - [ ] **Windows Controller**:
-    - [ ] Lệnh Shutdown, Restart, Sleep via `subprocess` / `os.system`.
-    - [ ] Lệnh chỉnh Âm lượng (Volume) qua `ctypes` / `pycaw`.
-    - [ ] Chỉnh Độ sáng màn hình (Screen Brightness) qua `screen-brightness-control`.
-  - [ ] **Linux Controller**:
-    - [ ] Lệnh Power management via `systemctl` / `shutdown`.
-    - [ ] Lệnh chỉnh Âm lượng via `amixer` hoặc `pactl`.
-    - [ ] Chỉnh Độ sáng màn hình via `brightnessctl` hoặc `xrandr` / `screen-brightness-control`.
-- [ ] **2.3 FastAPI Endpoint Integration**
-  - [ ] Lập trình Endpoint `POST /api/control` xử lý các hành động điều khiển.
-  - [ ] Lập trình Endpoint `GET /api/status` trả về thông tin CPU, RAM, Battery, Volume, Brightness.
-  - [ ] Cấu hình CORS và uvicorn runner lắng nghe trên IP LAN `0.0.0.0:8000`.
+- [x] **2.1 OS Detection & Abstraction Layer**
+  - [x] Viết module phát hiện HĐH sử dụng thư viện `platform`.
+  - [x] Xây dựng interface/service định nghĩa tập lệnh hệ thống (Power, Brightness, Volume, Status).
+- [x] **2.2 Platform Specific Implementations**
+  - [x] **Windows Controller**:
+    - [x] Lệnh Shutdown, Restart, Sleep via `subprocess` / `os.system`.
+    - [x] Lệnh chỉnh Âm lượng (Volume) qua `ctypes` / `pycaw`.
+    - [x] Chỉnh Độ sáng màn hình (Screen Brightness) qua `screen-brightness-control`.
+  - [x] **Linux Controller**:
+    - [x] Lệnh Power management via `systemctl` / `shutdown`.
+    - [x] Lệnh chỉnh Âm lượng via `amixer` hoặc `pactl`.
+    - [x] Chỉnh Độ sáng màn hình via `brightnessctl` hoặc `xrandr` / `screen-brightness-control`.
+- [x] **2.3 FastAPI Endpoint Integration**
+  - [x] Lập trình Endpoint `POST /api/control` xử lý các hành động điều khiển.
+  - [x] Lập trình Endpoint `GET /api/status` trả về thông tin CPU, RAM, Battery, Volume, Brightness.
+  - [x] Cấu hình CORS và uvicorn runner lắng nghe trên IP LAN `0.0.0.0:8000`.
 
 ---
 
@@ -49,10 +49,8 @@ Giai đoạn xây dựng RESTful Server bằng Python và thực thi lệnh hệ
 Xây dựng giao diện ứng dụng di động Flutter và kết nối với Backend Python.
 
 - [/] **3.1 UI/UX Design & Layout**
-  - [ ] Màn hình Cấu hình IP Host & Kết nối.
-  - [ ] Dashboard chính: Thẻ thông số Hệ thống (CPU, RAM, Pin).
-  - [ ] Bộ điều khiển Sliders: Thanh trượt Chỉnh Âm lượng và Độ sáng màn hình.
-  - [ ] Bộ nút bấm Nhanh: Shutdown, Restart, Sleep, Mute.
+  - [x] Di chuyển bản thiết kế UI Prototype v0.dev về `docs/ui_prototype/v0_nextjs`.
+  - [/] Xây dựng các Widget Flutter theo UI mẫu (Header, Status Card, Sliders, Power Buttons).
 - [ ] **3.2 State Management & HTTP Service**
   - [ ] Tích hợp `http` / `dio` package gửi request REST API.
   - [ ] Cấu hình Quản lý trạng thái (State Management) cho cập nhật realtime/mượt mà của Sliders và Buttons.
