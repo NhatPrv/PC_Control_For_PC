@@ -1,15 +1,24 @@
 @echo off
 echo ====================================================================
-echo BUILDING DEVICE CONTROL AI WINDOWS INSTALLER (.EXE)
+echo BUILDING PC CONTROL ALL-IN-ONE (WINDOWS SETUP .EXE & ANDROID .APK)
 echo ====================================================================
 
-echo 1. Building Flutter Windows Executable...
+echo 1/3. Building Flutter Windows Executable...
 cd ..\mobile_app
 call flutter build windows --release
 
 echo.
-echo 2. Compiling Inno Setup Installer...
+echo 2/3. Building Flutter Android Release APK...
+call flutter build apk --release
+
+echo.
+echo 3/3. Compiling Inno Setup Windows Installer...
 cd ..\installer
+
+if not exist "Output" mkdir "Output"
+
+echo Copying Android APK to installer/Output/ ...
+copy /Y "..\mobile_app\build\app\outputs\flutter-apk\app-release.apk" "Output\PC_Control_v1.0.0.apk"
 
 set ISCC_PATH=""
 
@@ -29,6 +38,8 @@ if not %ISCC_PATH%=="" (
 )
 
 echo ====================================================================
-echo DONE! Check installer/Output/ for your setup file.
+echo SUCCESS! All release packages generated in installer/Output/
+echo 📱 Android App: installer/Output/PC_Control_v1.0.0.apk
+echo 💻 Windows Setup: installer/Output/PC_Control_Setup_v1.0.0.exe
 echo ====================================================================
 pause
