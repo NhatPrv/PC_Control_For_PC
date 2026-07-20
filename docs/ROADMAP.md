@@ -48,29 +48,29 @@ Giai đoạn xây dựng RESTful Server bằng Python và thực thi lệnh hệ
 ## 📌 Phase 3: Flutter App Integration
 Xây dựng giao diện ứng dụng di động Flutter và kết nối với Backend Python.
 
-- [/] **3.1 UI/UX Design & Layout**
-  - [x] Di chuyển bản thiết kế UI Prototype v0.dev về `docs/ui_prototype/v0_nextjs`.
-  - [/] Xây dựng các Widget Flutter theo UI mẫu (Header, Status Card, Sliders, Power Buttons).
-- [ ] **3.2 State Management & HTTP Service**
-  - [ ] Tích hợp `http` / `dio` package gửi request REST API.
-  - [ ] Cấu hình Quản lý trạng thái (State Management) cho cập nhật realtime/mượt mà của Sliders và Buttons.
-- [ ] **3.3 iOS & Network Privacy Configurations**
-  - [ ] Khởi tạo file `Info.plist` cấu hình quyền `NSLocalNetworkUsageDescription` và `NSBonjourServices` trên iOS.
-  - [ ] Cấu hình Android Manifest cho phép truy cập giao thức HTTP không mã hóa (Cleartext Traffic) trên mạng LAN.
+- [x] **3.1 UI/UX Design & Layout**
+  - [x] Tái hiện 100% bản mẫu v0.dev với phong cách Dark Mode Glassmorphism trên Flutter.
+  - [x] Xây dựng đầy đủ các Widgets: DashboardHeader, DeviceMonitorCard, ControlSlider, PowerActionButton, HomeScreen.
+- [x] **3.2 State Management & HTTP Service**
+  - [x] Tích hợp package `http` & `provider` thực hiện các yêu cầu REST API POST/GET mượt mà.
+  - [x] Tự động lưu vết cấu hình IP Host & Port qua `shared_preferences`.
+  - [x] Tự động cập nhật thông số hệ thống realtime (Auto refresh 3s).
+- [x] **3.3 iOS & Network Privacy Configurations**
+  - [x] Cấu hình `Info.plist` cấp quyền `NSLocalNetworkUsageDescription` và `NSAppTransportSecurity` trên iOS.
+  - [x] Cấu hình `AndroidManifest.xml` cấp quyền `INTERNET` và `android:usesCleartextTraffic="true"` cho Android.
 
 ---
 
 ## 📌 Phase 4: Testing, Security Hardening & Wake-on-LAN Integration
 Kiểm thử toàn diện, tối ưu bảo mật và tích hợp khả năng bật máy từ xa.
 
-- [ ] **4.1 Wake-on-LAN (WoL) Feature**
+- [/] **4.1 Wake-on-LAN (WoL) Feature**
   - [ ] Tích hợp package `wake_on_lan` trên ứng dụng Flutter.
   - [ ] Xây dựng cơ chế lưu trữ MAC Address và Broadcast IP của Laptop Host.
   - [ ] Kiểm thử gửi Magic Packet qua UDP port 7/9 để bật máy từ trạng thái Off/Sleep.
-- [ ] **4.2 Security & Validation Hardening**
-  - [ ] Thêm cơ chế xác thực Token / PIN đơn giản giữa Mobile App và Python Server.
-  - [ ] Validate dữ liệu đầu vào (VD: giá trị brightness/volume trong khoảng 0-100).
-- [ ] **4.3 End-to-End Testing & Polish**
-  - [ ] Kiểm thử trên các môi trường thực tế (Windows 11 & Ubuntu/Debian Linux).
-  - [ ] Xử lý trôi chảy các lỗi mất kết nối mạng LAN hoặc Timeout request.
+- [/] **4.2 Security & Validation Hardening**
+  - [x] Đã cấu hình xác thực Header `X-API-Key` giữa App di động và Python Server.
+  - [x] Validate dữ liệu đầu vào Pydantic Schemas trong khoảng (0-100).
+- [/] **4.3 End-to-End Testing & Polish**
+  - [ ] Kiểm thử chạy đồng thời Python Backend và Flutter App trong mạng LAN.
   - [ ] Viết tài liệu hướng dẫn vận hành hoàn chỉnh.
