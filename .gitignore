@@ -9,6 +9,12 @@
 .gitmodules
 *.pem
 
+# 1.1 LARGE BINARY INSTALLERS
+installer/Output/
+cloud_server/static/downloads/*.apk
+cloud_server/static/downloads/*.exe
+!cloud_server/static/downloads/.gitkeep
+
 # 2. NODE.JS / JAVASCRIPT / TYPESCRIPT (Web & App)
 node_modules/
 .npm/
