@@ -133,18 +133,9 @@ async def disconnect_session(req: DisconnectRequest):
         if active_laptops:
             target_id = list(active_laptops.keys())[0]
 
-    if target_id and target_id in active_laptops:
-        ws = active_laptops.pop(target_id)
-        try:
-            # Gửi thông báo ngắt kết nối cho Laptop Agent dừng loop
-            await ws.send_text(json.dumps({"type": "disconnect_agent"}))
-            await asyncio.sleep(0.2)
-            await ws.close(code=1000, reason="User disconnected session")
-        except Exception:
-            pass
     if target_id and target_id in latest_laptop_statuses:
         latest_laptop_statuses[target_id]["connected"] = False
-        latest_laptop_statuses[target_id]["status"] = "offline"
+        latest_laptop_statuses[target_id]["status"] = "standby"
     return {"status": "success", "message": f"Session [{target_id}] disconnected successfully."}
 
 if __name__ == "__main__":
