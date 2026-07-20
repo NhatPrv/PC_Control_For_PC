@@ -18,17 +18,16 @@ app.add_middleware(
 
 SECRET_API_KEY = os.getenv("SECRET_API_KEY", "MyPrivateLaptopControlKey@2026")
 
-# Quản lý Đa người dùng / Đa thiết bị bằng Dictionary {device_id: WebSocket}
 active_laptops: Dict[str, WebSocket] = {}
 latest_laptop_statuses: Dict[str, Dict[str, Any]] = {}
 
 class ControlRequest(BaseModel):
-    device_id: Optional[str] = "default_device"
+    device_id: Optional[str] = None
     action: str
     value: Optional[int] = None
 
 class DisconnectRequest(BaseModel):
-    device_id: Optional[str] = "default_device"
+    device_id: Optional[str] = None
 
 def verify_api_key(x_api_key: Optional[str] = Header(None)):
     if SECRET_API_KEY and x_api_key != SECRET_API_KEY:
@@ -72,10 +71,16 @@ def root():
     }
 
 @app.get("/api/status", dependencies=[Depends(verify_api_key)])
-def get_status(device_id: Optional[str] = "default_device"):
-    if device_id not in active_laptops:
+def get_status(device_id: Optional[str] = None):
+    # Nếu không truyền device_id hoặc không khớp, tự chọn thiết bị active đầu tiên
+    target_id = device_id
+    if not target_id or target_id not in active_laptops:
+        if active_laptops:
+            target_id = list(active_laptops.keys())[0]
+
+    if not target_id or target_id not in active_laptops:
         return {
-            "device_id": device_id,
+            "device_id": "none",
             "os": "Unknown",
             "hostname": "Laptop Offline",
             "cpu_usage_percent": 0.0,
@@ -86,36 +91,44 @@ def get_status(device_id: Optional[str] = "default_device"):
             "connected": False,
             "status": "offline"
         }
-    return latest_laptop_statuses.get(device_id, {"connected": True, "status": "online"})
+    return latest_laptop_statuses.get(target_id, {"connected": True, "status": "online"})
 
 @app.post("/api/control", dependencies=[Depends(verify_api_key)])
 async def send_control(req: ControlRequest):
-    dev_id = req.device_id or "default_device"
-    if dev_id not in active_laptops:
-        raise HTTPException(status_code=503, detail=f"Laptop Agent [{dev_id}] is offline or disconnected")
+    target_id = req.device_id
+    if not target_id or target_id not in active_laptops:
+        if active_laptops:
+            target_id = list(active_laptops.keys())[0]
+
+    if not target_id or target_id not in active_laptops:
+        raise HTTPException(status_code=503, detail="No active Laptop Agent connected to AWS EC2")
     
-    ws = active_laptops[dev_id]
+    ws = active_laptops[target_id]
     command_payload = {
         "type": "command",
         "action": req.action,
         "value": req.value
     }
     await ws.send_text(json.dumps(command_payload))
-    return {"status": "success", "message": f"Command '{req.action}' relayed to Laptop [{dev_id}] successfully."}
+    return {"status": "success", "message": f"Command '{req.action}' relayed to Laptop [{target_id}] successfully."}
 
 @app.post("/api/disconnect", dependencies=[Depends(verify_api_key)])
 async def disconnect_session(req: DisconnectRequest):
-    dev_id = req.device_id or "default_device"
-    if dev_id in active_laptops:
-        ws = active_laptops.pop(dev_id)
+    target_id = req.device_id
+    if not target_id or target_id not in active_laptops:
+        if active_laptops:
+            target_id = list(active_laptops.keys())[0]
+
+    if target_id and target_id in active_laptops:
+        ws = active_laptops.pop(target_id)
         try:
             await ws.close(code=1000, reason="User disconnected session")
         except Exception:
             pass
-    if dev_id in latest_laptop_statuses:
-        latest_laptop_statuses[dev_id]["connected"] = False
-        latest_laptop_statuses[dev_id]["status"] = "offline"
-    return {"status": "success", "message": f"Session [{dev_id}] disconnected successfully."}
+    if target_id and target_id in latest_laptop_statuses:
+        latest_laptop_statuses[target_id]["connected"] = False
+        latest_laptop_statuses[target_id]["status"] = "offline"
+    return {"status": "success", "message": f"Session [{target_id}] disconnected successfully."}
 
 if __name__ == "__main__":
     import uvicorn
