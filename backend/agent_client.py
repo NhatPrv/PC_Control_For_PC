@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from app.services.system_service import SystemService
 
 AWS_EC2_IP = os.getenv("AWS_EC2_IP", "18.143.90.229")
-AWS_EC2_PORT = os.getenv("AWS_EC2_PORT", "8000")
+AWS_EC2_PORT = os.getenv("AWS_EC2_PORT", "8002")
 SECRET_API_KEY = os.getenv("SECRET_API_KEY", "MyPrivateLaptopControlKey@2026")
 
 WS_URL = f"ws://{AWS_EC2_IP}:{AWS_EC2_PORT}/ws/laptop"
