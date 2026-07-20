@@ -3,10 +3,11 @@
 # (Tối ưu cho Antigravity, Gemini, Cursor, Cline, Aider & Git)
 # ====================================================================
 
-# 1. QUẢN LÝ PHIÊN BẢN (VERSION CONTROL)
+# 1. QUẢN LÝ PHIÊN BẢN & BẢO MẬT
 .git/
 .gitattributes
 .gitmodules
+*.pem
 
 # 2. NODE.JS / JAVASCRIPT / TYPESCRIPT (Web & App)
 node_modules/
