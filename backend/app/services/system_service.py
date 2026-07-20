@@ -9,6 +9,26 @@ CURRENT_OS = platform.system()
 
 class SystemService:
     @staticmethod
+    def _get_win_volume_interface():
+        """Hàm trợ giúp lấy giao diện IAudioEndpointVolume tương thích cả pycaw phiên bản cũ và mới."""
+        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+        from comtypes import CLSCTX_ALL
+        from ctypes import cast, POINTER
+
+        devices = AudioUtilities.GetSpeakers()
+        if hasattr(devices, 'Activate'):
+            interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+            return cast(interface, POINTER(IAudioEndpointVolume))
+        elif hasattr(devices, 'EndpointVolume'):
+            return devices.EndpointVolume
+        else:
+            # Fallback chuẩn qua DeviceEnumerator
+            enum = AudioUtilities.CreateDeviceEnumerator()
+            speaker = enum.GetDefaultAudioEndpoint(0, 1)
+            interface = speaker.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+            return cast(interface, POINTER(IAudioEndpointVolume))
+
+    @staticmethod
     def get_system_status() -> Dict[str, Any]:
         """Lấy thông số tải CPU, RAM, Pin và trạng thái hiện tại của thiết bị."""
         cpu_usage = psutil.cpu_percent(interval=0.5)
@@ -54,14 +74,13 @@ class SystemService:
         """Lấy mức âm lượng hiện tại (0-100%)."""
         if CURRENT_OS == 'Windows':
             try:
-                from ctypes import cast, POINTER
-                from comtypes import CLSCTX_ALL
-                from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-                devices = AudioUtilities.GetSpeakers()
-                interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-                volume_obj = cast(interface, POINTER(IAudioEndpointVolume))
-                return int(volume_obj.GetMasterVolumeLevelScalar() * 100)
-            except Exception:
+                volume_obj = SystemService._get_win_volume_interface()
+                if hasattr(volume_obj, 'GetMasterVolumeLevelScalar'):
+                    return int(volume_obj.GetMasterVolumeLevelScalar() * 100)
+                elif hasattr(volume_obj, 'MasterVolumeLevelScalar'):
+                    return int(volume_obj.MasterVolumeLevelScalar * 100)
+            except Exception as e:
+                print(f"Windows Get Volume error: {e}")
                 return 50
         elif CURRENT_OS == 'Linux':
             try:
@@ -81,16 +100,14 @@ class SystemService:
         level = max(0, min(100, level))
         if CURRENT_OS == 'Windows':
             try:
-                from ctypes import cast, POINTER
-                from comtypes import CLSCTX_ALL
-                from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-                devices = AudioUtilities.GetSpeakers()
-                interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-                volume_obj = cast(interface, POINTER(IAudioEndpointVolume))
-                volume_obj.SetMasterVolumeLevelScalar(level / 100.0, None)
+                volume_obj = SystemService._get_win_volume_interface()
+                if hasattr(volume_obj, 'SetMasterVolumeLevelScalar'):
+                    volume_obj.SetMasterVolumeLevelScalar(level / 100.0, None)
+                elif hasattr(volume_obj, 'MasterVolumeLevelScalar'):
+                    volume_obj.MasterVolumeLevelScalar = level / 100.0
                 return True
             except Exception as e:
-                print(f"Windows Volume error: {e}")
+                print(f"Windows Set Volume error: {e}")
                 return False
         elif CURRENT_OS == 'Linux':
             try:
