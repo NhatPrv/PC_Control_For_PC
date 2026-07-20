@@ -32,10 +32,14 @@ SECRET_API_KEY = os.getenv("SECRET_API_KEY", "MyPrivateLaptopControlKey@2026")
 active_laptops: Dict[str, WebSocket] = {}
 latest_laptop_statuses: Dict[str, Dict[str, Any]] = {}
 
+# Quản lý trạng thái Session ghép nối thực tế giữa Điện thoại & Máy tính
+paired_sessions: Dict[str, Dict[str, Any]] = {}
+
 class ControlRequest(BaseModel):
     device_id: Optional[str] = None
     action: str
     value: Optional[int] = None
+    mode: Optional[str] = "Remote"
 
 class DisconnectRequest(BaseModel):
     device_id: Optional[str] = None
@@ -74,15 +78,24 @@ async def websocket_endpoint(websocket: WebSocket, device_id: Optional[str] = "d
             if data.get("type") == "status_update":
                 status_payload = data.get("data", {})
                 status_payload["status"] = "online"
-                status_payload["connected"] = True
                 status_payload["device_id"] = device_id
+                
+                # Giữ nguyên trạng thái ghép nối is_paired hiện tại
+                is_p = paired_sessions.get(device_id, {}).get("is_paired", False)
+                p_mode = paired_sessions.get(device_id, {}).get("paired_mode", "Remote")
+                status_payload["connected"] = is_p
+                status_payload["is_paired"] = is_p
+                status_payload["paired_mode"] = p_mode
+                
                 latest_laptop_statuses[device_id] = status_payload
     except WebSocketDisconnect:
         print(f"🔴 Laptop Agent [{device_id}] disconnected from AWS EC2")
         active_laptops.pop(device_id, None)
+        paired_sessions.pop(device_id, None)
         if device_id in latest_laptop_statuses:
             latest_laptop_statuses[device_id]["status"] = "offline"
             latest_laptop_statuses[device_id]["connected"] = False
+            latest_laptop_statuses[device_id]["is_paired"] = False
 
 @app.get("/api/status", dependencies=[Depends(verify_api_key)])
 def get_status(device_id: Optional[str] = None):
@@ -102,12 +115,17 @@ def get_status(device_id: Optional[str] = None):
             "brightness": 0,
             "volume": 0,
             "connected": False,
+            "is_paired": False,
+            "paired_mode": "Remote",
             "status": "offline"
         }
     
     status_data = latest_laptop_statuses.get(target_id, {})
-    status_data["connected"] = True
-    status_data["status"] = "online"
+    is_p = paired_sessions.get(target_id, {}).get("is_paired", False)
+    p_mode = paired_sessions.get(target_id, {}).get("paired_mode", "Remote")
+    status_data["connected"] = is_p
+    status_data["is_paired"] = is_p
+    status_data["paired_mode"] = p_mode
     return status_data
 
 @app.post("/api/control", dependencies=[Depends(verify_api_key)])
@@ -120,6 +138,12 @@ async def send_control(req: ControlRequest):
     if not target_id or target_id not in active_laptops:
         raise HTTPException(status_code=503, detail="No active Laptop Agent connected to AWS EC2")
     
+    # Đánh dấu Session ĐÃ KẾT NỐI THẬT SỰ khi có lệnh từ Điện thoại
+    paired_sessions[target_id] = {
+        "is_paired": True,
+        "paired_mode": req.mode or "Remote"
+    }
+    
     ws = active_laptops[target_id]
     command_payload = {
         "type": "command",
@@ -127,7 +151,7 @@ async def send_control(req: ControlRequest):
         "value": req.value
     }
     await ws.send_text(json.dumps(command_payload))
-    print(f"⚡ Relayed action '{req.action}' value={req.value} to Laptop [{target_id}]")
+    print(f"⚡ Relayed action '{req.action}' to Laptop [{target_id}] (Session Active: True)")
     return {"status": "success", "message": f"Command '{req.action}' relayed to Laptop [{target_id}] successfully."}
 
 @app.post("/api/disconnect", dependencies=[Depends(verify_api_key)])
@@ -137,9 +161,18 @@ async def disconnect_session(req: DisconnectRequest):
         if active_laptops:
             target_id = list(active_laptops.keys())[0]
 
-    if target_id and target_id in latest_laptop_statuses:
-        latest_laptop_statuses[target_id]["connected"] = False
-        latest_laptop_statuses[target_id]["status"] = "standby"
+    # Hủy Session ghép nối hoàn toàn 100% hai chiều
+    if target_id:
+        paired_sessions[target_id] = {
+            "is_paired": False,
+            "paired_mode": "Remote"
+        }
+        if target_id in latest_laptop_statuses:
+            latest_laptop_statuses[target_id]["connected"] = False
+            latest_laptop_statuses[target_id]["is_paired"] = False
+            latest_laptop_statuses[target_id]["status"] = "standby"
+            
+    print(f"🔴 Disconnected Session for Laptop [{target_id}] (Session Active: False)")
     return {"status": "success", "message": f"Session [{target_id}] disconnected successfully."}
 
 if __name__ == "__main__":
