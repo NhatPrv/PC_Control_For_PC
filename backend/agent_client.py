@@ -40,7 +40,7 @@ async def start_agent():
                 async def receive_commands_loop():
                     while True:
                         try:
-                            message = await websocket.receive()
+                            message = await websocket.recv()
                             data = json.loads(message)
                             if data.get("type") == "command":
                                 action = data.get("action")
