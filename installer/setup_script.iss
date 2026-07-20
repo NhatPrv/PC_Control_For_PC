@@ -2,9 +2,9 @@
 ; INNO SETUP SCRIPT FOR DEVICE CONTROL AI (WINDOWS INSTALLER)
 ; ====================================================================
 
-#define MyAppName "Device Control AI"
+#define MyAppName "PC Control"
 #define MyAppVersion "1.0.0"
-#define MyAppPublisher "Device Control AI Team"
+#define MyAppPublisher "PC Control Team"
 #define MyAppURL "https://github.com/NhatPrv/PC_Control_For_PC"
 #define MyAppExeName "mobile_app.exe"
 
@@ -18,7 +18,7 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
-OutputBaseFilename=Device_Control_AI_Setup_v1.0.0
+OutputBaseFilename=PC_Control_Setup_v1.0.0
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
