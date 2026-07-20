@@ -4,24 +4,26 @@ import json
 import sys
 import os
 
-# Nạp thư mục app vào path để import SystemService
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from app.services.system_service import SystemService
 
-# Điền IP Public của AWS EC2 Instance của bạn ở đây
-AWS_EC2_IP = os.getenv("AWS_EC2_IP", "127.0.0.1")
+AWS_EC2_IP = os.getenv("AWS_EC2_IP", "18.143.90.229")
 AWS_EC2_PORT = os.getenv("AWS_EC2_PORT", "8000")
+SECRET_API_KEY = os.getenv("SECRET_API_KEY", "MyPrivateLaptopControlKey@2026")
 
 WS_URL = f"ws://{AWS_EC2_IP}:{AWS_EC2_PORT}/ws/laptop"
 
 async def start_agent():
     print(f"🔄 Connecting Laptop Agent to AWS EC2: {WS_URL} ...")
+    extra_headers = {
+        "x-api-key": SECRET_API_KEY
+    }
+    
     while True:
         try:
-            async with websockets.connect(WS_URL) as websocket:
-                print("🟢 Successfully connected to AWS EC2 Relay Server!")
+            async with websockets.connect(WS_URL, extra_headers=extra_headers) as websocket:
+                print("🟢 Successfully authenticated & connected to AWS EC2 Relay Server!")
                 
-                # Task gửi trạng thái hệ thống định kỳ 2s/lần
                 async def send_status_loop():
                     while True:
                         try:
@@ -36,7 +38,6 @@ async def start_agent():
                             print(f"Status loop error: {e}")
                             break
 
-                # Task lắng nghe lệnh từ AWS EC2 đẩy xuống
                 async def receive_commands_loop():
                     while True:
                         try:
@@ -47,7 +48,6 @@ async def start_agent():
                                 val = data.get("value")
                                 print(f"⚡ Received Command from AWS EC2: action={action}, value={val}")
                                 
-                                # Thực thi lệnh phần cứng trên Laptop
                                 if action in ["shutdown", "restart", "sleep"]:
                                     SystemService.execute_power_action(action)
                                 elif action == "brightness" and val is not None:
@@ -64,7 +64,7 @@ async def start_agent():
                 await asyncio.gather(send_status_loop(), receive_commands_loop())
 
         except Exception as e:
-            print(f"❌ Connection failed: {e}. Retrying in 5 seconds...")
+            print(f"❌ Connection failed or Unauthorized key: {e}. Retrying in 5 seconds...")
             await asyncio.sleep(5)
 
 if __name__ == "__main__":

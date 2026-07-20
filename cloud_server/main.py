@@ -1,7 +1,7 @@
 import asyncio
 import json
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+import os
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, Header
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 
@@ -15,7 +15,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Lưu trữ kết nối WebSocket của Laptop Agent
+# Secret Key bảo mật (Lấy từ biến môi trường hoặc dùng mặc định)
+SECRET_API_KEY = os.getenv("SECRET_API_KEY", "MyPrivateLaptopControlKey@2026")
+
 laptop_connection: Optional[WebSocket] = None
 latest_laptop_status: Dict[str, Any] = {
     "status": "offline",
@@ -26,16 +28,28 @@ class ControlRequest(BaseModel):
     action: str
     value: Optional[int] = None
 
+def verify_api_key(x_api_key: Optional[str] = Header(None)):
+    """Xác thực Secret Key từ App di động."""
+    if SECRET_API_KEY and x_api_key != SECRET_API_KEY:
+        raise HTTPException(status_code=401, detail="🔒 Access Denied: Invalid Secret API Key")
+
 @app.websocket("/ws/laptop")
 async def websocket_endpoint(websocket: WebSocket):
     global laptop_connection, latest_laptop_status
+    
+    # Kiểm tra Secret Key từ Header kết nối của Laptop Agent
+    client_key = websocket.headers.get("x-api-key")
+    if SECRET_API_KEY and client_key != SECRET_API_KEY:
+        print("⛔ Rejected unauthorized Laptop Agent connection attempt!")
+        await websocket.close(code=4001, reason="Unauthorized Secret Key")
+        return
+
     await websocket.accept()
     laptop_connection = websocket
-    print("🟢 Laptop Agent connected to AWS EC2 via WebSocket")
+    print("🟢 Laptop Agent (Authenticated) connected to AWS EC2 via WebSocket")
     
     try:
         while True:
-            # Nhận thông số trạng thái định kỳ từ Laptop Agent
             data_text = await websocket.receive_text()
             data = json.loads(data_text)
             if data.get("type") == "status_update":
@@ -50,10 +64,11 @@ async def websocket_endpoint(websocket: WebSocket):
 def root():
     return {
         "server": "Device_Control_AI AWS EC2 Relay",
+        "security": "Authenticated with Secret API Key",
         "laptop_status": "online" if laptop_connection else "offline"
     }
 
-@app.get("/api/status")
+@app.get("/api/status", dependencies=[Depends(verify_api_key)])
 def get_status():
     if not laptop_connection:
         return {
@@ -68,13 +83,12 @@ def get_status():
         }
     return latest_laptop_status
 
-@app.post("/api/control")
+@app.post("/api/control", dependencies=[Depends(verify_api_key)])
 async def send_control(req: ControlRequest):
     global laptop_connection
     if not laptop_connection:
         raise HTTPException(status_code=503, detail="Laptop Agent is offline or not connected to AWS EC2")
     
-    # Chuyển tiếp lệnh điều khiển từ Mobile App tới Laptop Agent qua WebSocket
     command_payload = {
         "type": "command",
         "action": req.action,
