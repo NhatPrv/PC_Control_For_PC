@@ -45,6 +45,7 @@ Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Registry]
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "PCControlAgent"; ValueData: """{app}\backend\start_agent_hidden.vbs"""; Flags: uninsdeletevalue
 ; Tự động khởi chạy Agent ngầm cùng Windows nếu người dùng tích chọn
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "DeviceControlAIAgent"; ValueData: """{app}\.venv\Scripts\pythonw.exe"" ""{app}\backend\agent_client.py"""; Flags: uninsdeletevalue; Tasks: autostart
 
