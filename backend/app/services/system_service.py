@@ -9,24 +9,21 @@ CURRENT_OS = platform.system()
 
 class SystemService:
     @staticmethod
-    def _get_win_volume_interface():
-        """Hàm trợ giúp lấy giao diện IAudioEndpointVolume tương thích cả pycaw phiên bản cũ và mới."""
-        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-        from comtypes import CLSCTX_ALL
-        from ctypes import cast, POINTER
+    def _get_win_volume_endpoint():
+        """Khởi tạo Windows Core Audio COM Endpoint trực tiếp (Hỗ trợ 100% mọi phiên bản Windows & Python)."""
+        from comtypes import GUID, client, CLSCTX_ALL
+        from ctypes import POINTER, cast
+        from pycaw.pycaw import IAudioEndpointVolume, IMMDeviceEnumerator
 
-        devices = AudioUtilities.GetSpeakers()
-        if hasattr(devices, 'Activate'):
-            interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-            return cast(interface, POINTER(IAudioEndpointVolume))
-        elif hasattr(devices, 'EndpointVolume'):
-            return devices.EndpointVolume
-        else:
-            # Fallback chuẩn qua DeviceEnumerator
-            enum = AudioUtilities.CreateDeviceEnumerator()
-            speaker = enum.GetDefaultAudioEndpoint(0, 1)
-            interface = speaker.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-            return cast(interface, POINTER(IAudioEndpointVolume))
+        CLSID_MMDeviceEnumerator = GUID('{BCDE0380-1D51-4685-8754-21A531E5B836}')
+        IID_IMMDeviceEnumerator = GUID('{A95664D2-9614-4F35-A746-DE8DB63617E6}')
+        IID_IAudioEndpointVolume = GUID('{5CDF2C82-841E-4546-9722-0CF74078229A}')
+
+        enumerator = client.CreateObject(CLSID_MMDeviceEnumerator, interface=IMMDeviceEnumerator)
+        # eRender = 0, eMultimedia = 1
+        device = enumerator.GetDefaultAudioEndpoint(0, 1)
+        endpoint = device.Activate(IID_IAudioEndpointVolume, CLSCTX_ALL, None)
+        return cast(endpoint, POINTER(IAudioEndpointVolume))
 
     @staticmethod
     def get_system_status() -> Dict[str, Any]:
@@ -71,14 +68,14 @@ class SystemService:
 
     @staticmethod
     def get_volume() -> int:
-        """Lấy mức âm lượng hiện tại (0-100%)."""
+        """Lấy mức âm lượng hiện tại thực tế trên máy tính (0-100%)."""
         if CURRENT_OS == 'Windows':
             try:
-                volume_obj = SystemService._get_win_volume_interface()
-                if hasattr(volume_obj, 'GetMasterVolumeLevelScalar'):
-                    return int(volume_obj.GetMasterVolumeLevelScalar() * 100)
-                elif hasattr(volume_obj, 'MasterVolumeLevelScalar'):
-                    return int(volume_obj.MasterVolumeLevelScalar * 100)
+                endpoint = SystemService._get_win_volume_endpoint()
+                # Nếu đang Mute thì trả về 0%
+                if endpoint.GetMute():
+                    return 0
+                return int(round(endpoint.GetMasterVolumeLevelScalar() * 100))
             except Exception as e:
                 print(f"Windows Get Volume error: {e}")
                 return 50
@@ -96,15 +93,18 @@ class SystemService:
 
     @staticmethod
     def set_volume(level: int) -> bool:
-        """Đặt âm lượng hệ thống (0-100%)."""
+        """Đặt âm lượng hệ thống thực tế (0-100%)."""
         level = max(0, min(100, level))
         if CURRENT_OS == 'Windows':
             try:
-                volume_obj = SystemService._get_win_volume_interface()
-                if hasattr(volume_obj, 'SetMasterVolumeLevelScalar'):
-                    volume_obj.SetMasterVolumeLevelScalar(level / 100.0, None)
-                elif hasattr(volume_obj, 'MasterVolumeLevelScalar'):
-                    volume_obj.MasterVolumeLevelScalar = level / 100.0
+                endpoint = SystemService._get_win_volume_endpoint()
+                # Tự động bỏ Mute nếu người dùng kéo mức âm lượng > 0
+                if level > 0 and endpoint.GetMute():
+                    endpoint.SetMute(0, None)
+                elif level == 0:
+                    endpoint.SetMute(1, None)
+                
+                endpoint.SetMasterVolumeLevelScalar(level / 100.0, None)
                 return True
             except Exception as e:
                 print(f"Windows Set Volume error: {e}")
