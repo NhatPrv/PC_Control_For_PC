@@ -11,17 +11,14 @@ AWS_EC2_IP = os.getenv("AWS_EC2_IP", "18.143.90.229")
 AWS_EC2_PORT = os.getenv("AWS_EC2_PORT", "8002")
 SECRET_API_KEY = os.getenv("SECRET_API_KEY", "MyPrivateLaptopControlKey@2026")
 
-WS_URL = f"ws://{AWS_EC2_IP}:{AWS_EC2_PORT}/ws/laptop"
+WS_URL = f"ws://{AWS_EC2_IP}:{AWS_EC2_PORT}/ws/laptop?api_key={SECRET_API_KEY}"
 
 async def start_agent():
-    print(f"🔄 Connecting Laptop Agent to AWS EC2: {WS_URL} ...")
-    headers = {
-        "x-api-key": SECRET_API_KEY
-    }
+    print(f"🔄 Connecting Laptop Agent to AWS EC2: ws://{AWS_EC2_IP}:{AWS_EC2_PORT}/ws/laptop ...")
     
     while True:
         try:
-            async with websockets.connect(WS_URL, headers=headers) as websocket:
+            async with websockets.connect(WS_URL) as websocket:
                 print("🟢 Successfully authenticated & connected to AWS EC2 Relay Server!")
                 
                 async def send_status_loop():

@@ -35,11 +35,11 @@ def verify_api_key(x_api_key: Optional[str] = Header(None)):
         raise HTTPException(status_code=401, detail="🔒 Access Denied: Invalid Secret API Key")
 
 @app.websocket("/ws/laptop")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, api_key: Optional[str] = None):
     global laptop_connection, latest_laptop_status
     
-    # Kiểm tra Secret Key từ Header kết nối của Laptop Agent
-    client_key = websocket.headers.get("x-api-key")
+    # Kiểm tra Secret Key từ Query Parameter (?api_key=...) hoặc Header
+    client_key = api_key or websocket.headers.get("x-api-key")
     if SECRET_API_KEY and client_key != SECRET_API_KEY:
         print("⛔ Rejected unauthorized Laptop Agent connection attempt!")
         await websocket.close(code=4001, reason="Unauthorized Secret Key")
