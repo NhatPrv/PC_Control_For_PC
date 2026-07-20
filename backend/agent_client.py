@@ -21,7 +21,7 @@ async def start_agent():
     
     while True:
         try:
-            async with websockets.connect(WS_URL, additional_headers=headers) as websocket:
+            async with websockets.connect(WS_URL, headers=headers) as websocket:
                 print("🟢 Successfully authenticated & connected to AWS EC2 Relay Server!")
                 
                 async def send_status_loop():
