@@ -121,8 +121,17 @@ def get_status(device_id: Optional[str] = None):
         }
     
     status_data = latest_laptop_statuses.get(target_id, {})
-    is_p = paired_sessions.get(target_id, {}).get("is_paired", False)
-    p_mode = paired_sessions.get(target_id, {}).get("paired_mode", "Remote")
+    if not status_data and latest_laptop_statuses:
+        status_data = list(latest_laptop_statuses.values())[0]
+
+    is_p = False
+    p_mode = "Remote"
+    for sess in paired_sessions.values():
+        if sess.get("is_paired", False):
+            is_p = True
+            p_mode = sess.get("paired_mode", "Remote")
+            break
+
     status_data["connected"] = is_p
     status_data["is_paired"] = is_p
     status_data["paired_mode"] = p_mode
