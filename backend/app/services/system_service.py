@@ -108,6 +108,20 @@ class SystemService:
             except Exception as e:
                 print(f"Error getting mute status: {e}")
                 return False
+        elif CURRENT_OS == 'Linux':
+            try:
+                out = subprocess.check_output(["amixer", "-D", "pulse", "sget", "Master"], stderr=subprocess.DEVNULL).decode('utf-8')
+                return "[off]" in out
+            except Exception:
+                try:
+                    out = subprocess.check_output(["pactl", "get-sink-mute", "@DEFAULT_SINK@"], stderr=subprocess.DEVNULL).decode('utf-8')
+                    return "yes" in out.lower()
+                except Exception:
+                    try:
+                        out = subprocess.check_output(["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"], stderr=subprocess.DEVNULL).decode('utf-8')
+                        return "[MUTED]" in out
+                    except Exception:
+                        pass
         return False
 
     @staticmethod
@@ -123,16 +137,47 @@ class SystemService:
             except Exception as e:
                 print(f"Error toggling mute: {e}")
                 return False
+        elif CURRENT_OS == 'Linux':
+            try:
+                subprocess.run(["amixer", "-q", "-D", "pulse", "sset", "Master", "toggle"], check=True)
+                return True
+            except Exception:
+                try:
+                    subprocess.run(["pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle"], check=True)
+                    return True
+                except Exception:
+                    try:
+                        subprocess.run(["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"], check=True)
+                        return True
+                    except Exception as e:
+                        print(f"Linux Toggle Mute error: {e}")
+                        return False
         return False
 
     @staticmethod
     def set_brightness(level: int) -> bool:
         """Đổi độ sáng màn hình (0-100%)."""
+        level = max(0, min(100, level))
         try:
-            level = max(0, min(100, level))
             sbc.set_brightness(level)
             return True
         except Exception as e:
+            if CURRENT_OS == 'Linux':
+                try:
+                    subprocess.run(["brightnessctl", "set", f"{level}%"], check=True, stderr=subprocess.DEVNULL)
+                    return True
+                except Exception:
+                    try:
+                        out = subprocess.check_output(["xrandr", "--verbose"], stderr=subprocess.DEVNULL).decode('utf-8')
+                        import re
+                        m = re.search(r"(\S+)\s+connected", out)
+                        if m:
+                            disp = m.group(1)
+                            b_val = max(0.1, level / 100.0)
+                            subprocess.run(["xrandr", "--output", disp, "--brightness", str(b_val)], check=True)
+                            return True
+                    except Exception:
+                        pass
             print(f"Error setting brightness: {e}")
             return False
 
@@ -149,13 +194,20 @@ class SystemService:
                 return 50
         elif CURRENT_OS == 'Linux':
             try:
-                out = subprocess.check_output(["amixer", "-D", "pulse", "sget", "Master"]).decode('utf-8')
+                out = subprocess.check_output(["amixer", "-D", "pulse", "sget", "Master"], stderr=subprocess.DEVNULL).decode('utf-8')
                 import re
                 m = re.search(r"\[(\d+)%\]", out)
                 if m:
                     return int(m.group(1))
             except Exception:
-                pass
+                try:
+                    out = subprocess.check_output(["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"], stderr=subprocess.DEVNULL).decode('utf-8')
+                    import re
+                    m = re.search(r"Volume:\s+(\d+\.\d+)", out)
+                    if m:
+                        return int(float(m.group(1)) * 100)
+                except Exception:
+                    pass
             return 50
         return 50
 
@@ -186,9 +238,14 @@ class SystemService:
                 try:
                     subprocess.run(["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{level}%"], check=True)
                     return True
-                except Exception as e:
-                    print(f"Linux Volume error: {e}")
-                    return False
+                except Exception:
+                    try:
+                        val_float = level / 100.0
+                        subprocess.run(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", str(val_float)], check=True)
+                        return True
+                    except Exception as e:
+                        print(f"Linux Volume error: {e}")
+                        return False
         return False
 
     @staticmethod
@@ -207,11 +264,20 @@ class SystemService:
             return True
         elif CURRENT_OS == 'Linux':
             if action == 'shutdown':
-                subprocess.run(["systemctl", "poweroff"])
+                try:
+                    subprocess.run(["systemctl", "poweroff"], check=True)
+                except Exception:
+                    os.system("shutdown -h now")
             elif action == 'restart':
-                subprocess.run(["systemctl", "reboot"])
+                try:
+                    subprocess.run(["systemctl", "reboot"], check=True)
+                except Exception:
+                    os.system("reboot")
             elif action == 'sleep':
-                subprocess.run(["systemctl", "suspend"])
+                try:
+                    subprocess.run(["systemctl", "suspend"], check=True)
+                except Exception:
+                    os.system("pm-suspend")
             else:
                 return False
             return True
