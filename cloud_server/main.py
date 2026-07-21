@@ -177,6 +177,6 @@ async def disconnect_session(req: DisconnectRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    # Chạy trên cổng 80 chuẩn web (hoặc cổng 8002 dự phòng)
-    port_to_run = int(os.environ.get("PORT", 80))
+    # Chạy mặc định trên cổng 8002 (Cổng đã mở Security Group trên AWS EC2)
+    port_to_run = int(os.environ.get("PORT", 8002))
     uvicorn.run("main:app", host="0.0.0.0", port=port_to_run, reload=True)
