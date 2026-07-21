@@ -15,7 +15,10 @@ SECRET_API_KEY = os.getenv("SECRET_API_KEY", "MyPrivateLaptopControlKey@2026")
 DEVICE_ID = f"LAP-{hex(uuid.getnode())[2:].upper()[:8]}"
 WS_URL = f"ws://{AWS_EC2_IP}:{AWS_EC2_PORT}/ws/laptop?device_id={DEVICE_ID}&api_key={SECRET_API_KEY}"
 
+is_paired_active = False
+
 async def start_agent():
+    global is_paired_active
     print(f"🔄 Connecting Laptop Agent [{DEVICE_ID}] to AWS EC2: ws://{AWS_EC2_IP}:{AWS_EC2_PORT}/ws/laptop ...")
     
     while True:
@@ -24,32 +27,43 @@ async def start_agent():
                 print(f"🟢 Successfully authenticated & connected to AWS EC2 Relay Server as [{DEVICE_ID}]!")
                 
                 async def send_status_loop():
+                    global is_paired_active
                     while True:
                         try:
-                            status_data = SystemService.get_system_status()
-                            status_data["device_id"] = DEVICE_ID
-                            payload = {
-                                "type": "status_update",
-                                "data": status_data
-                            }
-                            await websocket.send(json.dumps(payload))
+                            # Chỉ gửi thông số phần cứng khi đang ở trong Session ghép nối Active
+                            if is_paired_active:
+                                status_data = SystemService.get_system_status()
+                                status_data["device_id"] = DEVICE_ID
+                                payload = {
+                                    "type": "status_update",
+                                    "data": status_data
+                                }
+                                await websocket.send(json.dumps(payload))
                             await asyncio.sleep(2)
                         except Exception as e:
                             print(f"Status loop error: {e}")
                             break
 
                 async def receive_commands_loop():
+                    global is_paired_active
                     while True:
                         try:
                             message = await websocket.recv()
                             data = json.loads(message)
                             
-                            if data.get("type") == "command":
+                            msg_type = data.get("type")
+                            if msg_type == "session_disconnected":
+                                is_paired_active = False
+                                print(f"🛑 Session Disconnected by Mobile App. Pausing hardware telemetry.")
+                            elif msg_type == "command":
                                 action = data.get("action")
                                 val = data.get("value")
                                 print(f"⚡ Received Command [{DEVICE_ID}] from AWS EC2: action={action}, value={val}")
                                 
-                                if action in ["shutdown", "restart", "sleep"]:
+                                if action == "connect":
+                                    is_paired_active = True
+                                    print(f"🎉 Session Activated & Paired with Mobile App!")
+                                elif action in ["shutdown", "restart", "sleep"]:
                                     SystemService.execute_power_action(action)
                                 elif action == "brightness" and val is not None:
                                     SystemService.set_brightness(val)

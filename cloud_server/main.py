@@ -172,6 +172,12 @@ async def disconnect_session(req: DisconnectRequest):
             latest_laptop_statuses[target_id]["is_paired"] = False
             latest_laptop_statuses[target_id]["status"] = "standby"
             
+        if target_id in active_laptops:
+            try:
+                await active_laptops[target_id].send_text(json.dumps({"type": "session_disconnected"}))
+            except Exception:
+                pass
+
     print(f"🔴 Disconnected Session for Laptop [{target_id}] (Session Active: False)")
     return {"status": "success", "message": f"Session [{target_id}] disconnected successfully."}
 
