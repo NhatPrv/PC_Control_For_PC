@@ -4,9 +4,12 @@ import json
 import sys
 import os
 import uuid
+import threading
+import uvicorn
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from app.services.system_service import SystemService
+from main import app as fastapi_app
 
 AWS_EC2_IP = os.getenv("AWS_EC2_IP", "18.143.90.229")
 AWS_EC2_PORT = os.getenv("AWS_EC2_PORT", "8002")
@@ -17,8 +20,21 @@ WS_URL = f"ws://{AWS_EC2_IP}:{AWS_EC2_PORT}/ws/laptop?device_id={DEVICE_ID}&api_
 
 is_paired_active = False
 
+def run_local_fastapi_server():
+    """Khởi chạy Local FastAPI Server trên cổng 8002 để lắng nghe kết nối LAN trực tiếp từ Điện thoại."""
+    try:
+        print(f"🚀 Starting Local LAN HTTP/API Server on 0.0.0.0:8002 ...")
+        uvicorn.run(fastapi_app, host="0.0.0.0", port=8002, log_level="warning")
+    except Exception as e:
+        print(f"Local FastAPI Server error: {e}")
+
 async def start_agent():
     global is_paired_active
+
+    # Chạy Local FastAPI Server ở Thread riêng biệt để hỗ trợ LAN Mode trực tiếp
+    server_thread = threading.Thread(target=run_local_fastapi_server, daemon=True)
+    server_thread.start()
+
     print(f"🔄 Connecting Laptop Agent [{DEVICE_ID}] to AWS EC2: ws://{AWS_EC2_IP}:{AWS_EC2_PORT}/ws/laptop ...")
     
     while True:

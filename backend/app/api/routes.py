@@ -7,7 +7,7 @@ from app.core.config import settings
 router = APIRouter(prefix="/api", tags=["Control & Status"])
 
 class ControlRequest(BaseModel):
-    action: Literal["shutdown", "restart", "sleep", "brightness", "volume", "mute"] = Field(
+    action: Literal["shutdown", "restart", "sleep", "brightness", "volume", "mute", "connect"] = Field(
         ..., description="Hành động điều khiển hệ thống"
     )
     value: Optional[int] = Field(
@@ -21,11 +21,22 @@ def verify_api_key(x_api_key: Optional[str] = Header(None)):
 @router.get("/status", dependencies=[Depends(verify_api_key)])
 def get_status():
     """Lấy toàn bộ thông số tải hệ thống, dung lượng pin, âm lượng và độ sáng."""
-    return SystemService.get_system_status()
+    status_data = SystemService.get_system_status()
+    status_data["connected"] = True
+    status_data["is_paired"] = True
+    status_data["paired_mode"] = "LAN"
+    return status_data
+
+@router.post("/disconnect", dependencies=[Depends(verify_api_key)])
+def disconnect_session():
+    """Ngắt kết nối LAN."""
+    return {"status": "success", "message": "Disconnected LAN session."}
 
 @router.post("/control", dependencies=[Depends(verify_api_key)])
 def execute_control(req: ControlRequest):
     """Xử lý các thao tác điều khiển thiết bị."""
+    if req.action == "connect":
+        return {"status": "success", "message": "LAN connection active."}
     if req.action in ["shutdown", "restart", "sleep"]:
         success = SystemService.execute_power_action(req.action)
         if not success:

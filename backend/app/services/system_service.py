@@ -58,6 +58,19 @@ class SystemService:
         return "00:00:00:00:00:00"
 
     @staticmethod
+    def get_lan_ip() -> str:
+        """Lấy địa chỉ IP Wi-Fi/LAN nội bộ thật của Máy tính."""
+        try:
+            import socket
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+            return ip
+        except Exception:
+            return "127.0.0.1"
+
+    @staticmethod
     def get_system_status() -> Dict[str, Any]:
         """Lấy thông số tải CPU, RAM, Pin, Âm lượng, Trạng thái Mute và địa chỉ MAC Address."""
         cpu_usage = psutil.cpu_percent(interval=0.5)
@@ -86,7 +99,8 @@ class SystemService:
             "brightness": current_brightness,
             "volume": SystemService.get_volume(),
             "is_muted": is_muted,
-            "mac_address": SystemService.get_mac_address()
+            "mac_address": SystemService.get_mac_address(),
+            "lan_ip": SystemService.get_lan_ip()
         }
 
     @staticmethod
