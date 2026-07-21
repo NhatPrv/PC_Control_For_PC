@@ -8,19 +8,24 @@ cd "$SCRIPT_DIR"
 
 echo "[PC Control] Initializing Linux Backend Agent..."
 
-# Create Python Virtual Environment if missing
-if [ ! -d ".venv" ]; then
+# Check and create virtual environment or fallback to system pip
+if [ ! -f ".venv/bin/activate" ]; then
     echo "[PC Control] Creating virtual environment..."
-    python3 -m venv .venv
+    python3 -m venv .venv 2>/dev/null || true
 fi
 
-# Activate Virtual Environment
-source .venv/bin/activate
-
-# Install requirements if needed
-echo "[PC Control] Checking dependencies..."
-pip install -q -r requirements.txt
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+    pip install -q -r requirements.txt 2>/dev/null || python3 -m pip install -q -r requirements.txt 2>/dev/null || true
+else
+    echo "[PC Control] Installing dependencies via system python3 pip..."
+    python3 -m pip install -q -r requirements.txt --break-system-packages 2>/dev/null || pip3 install -q -r requirements.txt 2>/dev/null || true
+fi
 
 # Launch Agent Client
 echo "[PC Control] Starting Agent Client..."
-python3 agent_client.py
+if [ -f ".venv/bin/python3" ]; then
+    .venv/bin/python3 agent_client.py
+else
+    python3 agent_client.py
+fi
