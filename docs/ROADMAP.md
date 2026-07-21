@@ -34,10 +34,11 @@ Giai đoạn xây dựng RESTful Server bằng Python và thực thi lệnh hệ
     - [x] Lệnh Shutdown, Restart, Sleep via `subprocess` / `os.system`.
     - [x] Lệnh chỉnh Âm lượng (Volume) qua `ctypes` / `pycaw`.
     - [x] Chỉnh Độ sáng màn hình (Screen Brightness) qua `screen-brightness-control`.
-  - [x] **Linux Controller**:
-    - [x] Lệnh Power management via `systemctl` / `shutdown`.
-    - [x] Lệnh chỉnh Âm lượng via `amixer` hoặc `pactl`.
-    - [x] Chỉnh Độ sáng màn hình via `brightnessctl` hoặc `xrandr` / `screen-brightness-control`.
+  - [x] **Linux Controller (Kali Linux / Ubuntu / Debian / Arch)**:
+    - [x] Lệnh Power management via `systemctl` / `shutdown` / DBus.
+    - [x] Lệnh chỉnh Âm lượng & Mute via `amixer`, `pactl`, hoặc `wpctl` (PipeWire).
+    - [x] Chỉnh Độ sáng màn hình via `screen-brightness-control`, `brightnessctl`, hoặc `xrandr`.
+    - [x] Script tự động chạy ngầm `start_agent.sh` & Autostart Desktop Entry.
 - [x] **2.3 FastAPI Endpoint Integration**
   - [x] Lập trình Endpoint `POST /api/control` xử lý các hành động điều khiển.
   - [x] Lập trình Endpoint `GET /api/status` trả về thông tin CPU, RAM, Battery, Volume, Brightness.

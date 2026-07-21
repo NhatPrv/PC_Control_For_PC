@@ -143,13 +143,14 @@ def set_brightness(level: int):
 
 ### Bảng Ánh Xạ Lệnh Hệ Thống (Command Mapping Matrix):
 
-| Hành động | Lệnh trên Windows | Lệnh trên Linux |
+| Hành động | Lệnh trên Windows | Lệnh trên Linux (Kali / Ubuntu / Debian) |
 | :--- | :--- | :--- |
-| **Shutdown** | `shutdown /s /t 0` | `systemctl poweroff` / `shutdown -h now` |
+| **Shutdown** | `shutdown /s /t 0` | `systemctl poweroff` / `shutdown -h now` / DBus |
 | **Restart** | `shutdown /r /t 0` | `systemctl reboot` / `reboot` |
-| **Sleep** | `rundll32.exe powrprof.dll,SetSuspendState 0,1,0` | `systemctl suspend` |
-| **Volume** | CAPI `pycaw` / `ctypes` | `amixer set Master <val>%` / `pactl` |
-| **Brightness**| `screen-brightness-control` | `screen-brightness-control` / `brightnessctl` |
+| **Sleep** | `rundll32.exe powrprof.dll,SetSuspendState 0,1,0` | `systemctl suspend` / `pm-suspend` |
+| **Volume** | CAPI `pycaw` / `ctypes` | `amixer`, `pactl set-sink-volume`, `wpctl` |
+| **Mute Toggle**| CAPI `pycaw` | `amixer set Master toggle`, `pactl set-sink-mute` |
+| **Brightness**| `screen-brightness-control` | `screen-brightness-control` / `brightnessctl` / `xrandr` |
 
 ---
 
