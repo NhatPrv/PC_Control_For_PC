@@ -25,21 +25,16 @@ class SystemService:
 
     @staticmethod
     def _get_win_volume_endpoint():
-        """Khởi tạo Windows Core Audio COM Endpoint trực tiếp (Thread-safe 100%)."""
+        """Khởi tạo Windows Core Audio COM Endpoint qua Pycaw AudioUtilities (Thread-safe 100%)."""
         SystemService._init_win_com()
-
-        from comtypes import GUID, client, CLSCTX_ALL
-        from ctypes import POINTER, cast
-        from pycaw.pycaw import IAudioEndpointVolume, IMMDeviceEnumerator
-
-        CLSID_MMDeviceEnumerator = GUID('{BCDE0380-1D51-4685-8754-21A531E5B836}')
-        IID_IMMDeviceEnumerator = GUID('{A95664D2-9614-4F35-A746-DE8DB63617E6}')
-        IID_IAudioEndpointVolume = GUID('{5CDF2C82-841E-4546-9722-0CF74078229A}')
-
-        enumerator = client.CreateObject(CLSID_MMDeviceEnumerator, interface=IMMDeviceEnumerator)
-        device = enumerator.GetDefaultAudioEndpoint(0, 1)
-        endpoint = device.Activate(IID_IAudioEndpointVolume, CLSCTX_ALL, None)
-        return cast(endpoint, POINTER(IAudioEndpointVolume))
+        try:
+            from pycaw.pycaw import AudioUtilities
+            speakers = AudioUtilities.GetSpeakers()
+            if speakers:
+                return speakers.EndpointVolume
+        except Exception as e:
+            print(f"Pycaw Endpoint Error: {e}")
+        return None
 
     @staticmethod
     def get_mac_address() -> str:
@@ -123,7 +118,7 @@ class SystemService:
                 endpoint = SystemService._get_win_volume_endpoint()
                 current_mute = endpoint.GetMute()
                 endpoint.SetMute(0 if current_mute else 1, None)
-                print(f"🔊 Toggled Mute -> {'Muted' if not current_mute else 'Unmuted'}")
+                print(f"[Volume] Toggled Mute -> {'Muted' if not current_mute else 'Unmuted'}")
                 return True
             except Exception as e:
                 print(f"Error toggling mute: {e}")
@@ -147,7 +142,8 @@ class SystemService:
         if CURRENT_OS == 'Windows':
             try:
                 endpoint = SystemService._get_win_volume_endpoint()
-                return int(round(endpoint.GetMasterVolumeLevelScalar() * 100))
+                if endpoint:
+                    return int(round(endpoint.GetMasterVolumeLevelScalar() * 100))
             except Exception as e:
                 print(f"Windows Get Volume error: {e}")
                 return 50
@@ -170,14 +166,15 @@ class SystemService:
         if CURRENT_OS == 'Windows':
             try:
                 endpoint = SystemService._get_win_volume_endpoint()
-                if level > 0 and endpoint.GetMute():
-                    endpoint.SetMute(0, None)
-                elif level == 0:
-                    endpoint.SetMute(1, None)
-                
-                endpoint.SetMasterVolumeLevelScalar(level / 100.0, None)
-                print(f"🔊 Changed Volume to {level}%")
-                return True
+                if endpoint:
+                    if level > 0 and endpoint.GetMute():
+                        endpoint.SetMute(0, None)
+                    elif level == 0:
+                        endpoint.SetMute(1, None)
+                    
+                    endpoint.SetMasterVolumeLevelScalar(level / 100.0, None)
+                    print(f"[Volume] Changed Volume to {level}%")
+                    return True
             except Exception as e:
                 print(f"Windows Set Volume error: {e}")
                 return False
