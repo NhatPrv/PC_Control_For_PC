@@ -71,30 +71,34 @@ class HomeScreen extends StatelessWidget {
                 builder: (context, provider, child) {
                   final isConnected = provider.isConnected;
                   final status = provider.status;
-                  final allowWol = provider.isAllowWakeOnLan;
+                  final isRestarting = provider.activePowerAction == "restart";
+                  final allowWol = provider.isAllowWakeOnLan && !isRestarting;
+                  final allowControls = isConnected && !isRestarting;
 
                   return Column(
                     children: [
-                      // BANNER THÔNG BÁO KHÓA CHỨC NĂNG KHI CHƯA KẾT NỐI
-                      if (!isConnected) ...[
+                      // BANNER THÔNG BÁO KHÓA CHỨC NĂNG KHI CHƯA KẾT NỐI HOẶC RESTARTING
+                      if (!isConnected || isRestarting) ...[
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                           margin: const EdgeInsets.only(bottom: 20),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF43F5E).withValues(alpha: 0.1),
+                            color: (isRestarting ? Colors.orangeAccent : const Color(0xFFF43F5E)).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFF43F5E).withValues(alpha: 0.3)),
+                            border: Border.all(color: (isRestarting ? Colors.orangeAccent : const Color(0xFFF43F5E)).withValues(alpha: 0.3)),
                           ),
-                          child: const Row(
+                          child: Row(
                             children: [
-                              Icon(Icons.lock_rounded, color: Color(0xFFFDA4AF), size: 20),
-                              SizedBox(width: 10),
+                              Icon(isRestarting ? Icons.restart_alt : Icons.lock_rounded, color: isRestarting ? Colors.amberAccent : const Color(0xFFFDA4AF), size: 20),
+                              const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  "Đã khóa các chức năng điều khiển. Quét mã QR để kết nối hoặc dùng Wake-on-LAN bật máy.",
+                                  isRestarting
+                                      ? "Máy tính đang khởi động lại (Restarting)... Đã tạm khóa toàn bộ chức năng."
+                                      : "Đã khóa các chức năng điều khiển. Quét mã QR để kết nối hoặc bấm Bật Máy (WoL).",
                                   style: TextStyle(
-                                    color: Color(0xFFFDA4AF),
+                                    color: isRestarting ? Colors.amberAccent : const Color(0xFFFDA4AF),
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -105,11 +109,11 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ],
 
-                      // THÔNG SỐ TẢI HỆ THỐNG (CPU, RAM, PIN) - KHÓA KHI CHƯA KẾT NỐI
+                      // THÔNG SỐ TẢI HỆ THỐNG (CPU, RAM, PIN) - KHÓA KHI CHƯA KẾT NỐI HOẶC RESTARTING
                       Opacity(
-                        opacity: isConnected ? 1.0 : 0.45,
+                        opacity: allowControls ? 1.0 : 0.45,
                         child: IgnorePointer(
-                          ignoring: !isConnected,
+                          ignoring: !allowControls,
                           child: Row(
                             children: [
                               Expanded(
@@ -147,11 +151,11 @@ class HomeScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 20),
 
-                      // THANH ĐỘ SÁNG MÀN HÌNH - KHÓA KHI CHƯA KẾT NỐI
+                      // THANH ĐỘ SÁNG MÀN HÌNH - KHÓA KHI CHƯA KẾT NỐI HOẶC RESTARTING
                       Opacity(
-                        opacity: isConnected ? 1.0 : 0.45,
+                        opacity: allowControls ? 1.0 : 0.45,
                         child: IgnorePointer(
-                          ignoring: !isConnected,
+                          ignoring: !allowControls,
                           child: ControlSlider(
                             label: "Độ Sáng Màn Hình",
                             value: status?.brightness ?? 70,
@@ -163,11 +167,11 @@ class HomeScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 20),
 
-                      // THANH MASTER VOLUME - KHÓA KHI CHƯA KẾT NỐI
+                      // THANH MASTER VOLUME - KHÓA KHI CHƯA KẾT NỐI HOẶC RESTARTING
                       Opacity(
-                        opacity: isConnected ? 1.0 : 0.45,
+                        opacity: allowControls ? 1.0 : 0.45,
                         child: IgnorePointer(
-                          ignoring: !isConnected,
+                          ignoring: !allowControls,
                           child: const VolumeControlCard(),
                         ),
                       ),
@@ -176,12 +180,12 @@ class HomeScreen extends StatelessWidget {
                       // DẢI 4 NÚT CHỨC NĂNG Ở DƯỚI CÙNG (TẮT MÁY, RESTART, SLEEP, WAKE-ON-LAN)
                       Row(
                         children: [
-                          // 3 NÚT NGUỒN KHÓA KHI CHƯA KẾT NỐI
+                          // 3 NÚT NGUỒN KHÓA KHI CHƯA KẾT NỐI HOẶC RESTARTING
                           Expanded(
                             child: Opacity(
-                              opacity: isConnected ? 1.0 : 0.45,
+                              opacity: allowControls ? 1.0 : 0.45,
                               child: IgnorePointer(
-                                ignoring: !isConnected,
+                                ignoring: !allowControls,
                                 child: Row(
                                   children: [
                                     Expanded(
@@ -220,7 +224,7 @@ class HomeScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
 
-                          // NÚT WAKE-ON-LAN (BẬT KHI CHƯA KẾT NỐI/HOẶC LAN, KHÓA KHI REMOTE KHÔNG PHẢI LAN)
+                          // NÚT WAKE-ON-LAN (MỞ KHI SLEEP/SHUTDOWN/CHƯA KẾT NỐI, KHÓA KHI RESTARTING)
                           Expanded(
                             child: Opacity(
                               opacity: allowWol ? 1.0 : 0.45,
@@ -238,7 +242,7 @@ class HomeScreen extends StatelessWidget {
                                           backgroundColor: success ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
                                           content: Text(
                                             success
-                                                ? "⚡ Đã phát Magic Packet đánh thức PC [${provider.macAddress}]!"
+                                                ? "⚡ Đã gửi gói Magic Packet bật máy tới MAC: ${provider.macAddress}"
                                                 : "❌ Chưa tìm thấy MAC Address để phát Wake-on-LAN.",
                                           ),
                                         ),

@@ -70,13 +70,90 @@ class ControlProvider extends ChangeNotifier {
     return isLanConnection;
   }
 
-  /// Cho phép Wake-on-LAN khi ở cùng mạng LAN (Kể cả khi Laptop đã tắt)
+  /// Cho phép Wake-on-LAN khi:
+  /// 1. Không trong chu kỳ Restart
+  /// 2. Máy đang Tắt (Shutdown), Ngủ (Sleep) hoặc Chưa kết nối (Disconnected)
+  /// 3. Đã có địa chỉ MAC Address hợp lệ
   bool get isAllowWakeOnLan {
-    if (_manuallyDisconnected) return false;
-    if (_isConnected) {
-      return isLanConnection;
+    if (_activePowerAction == "restart") return false;
+    final macToUse = macAddress;
+    if (macToUse.isEmpty || macToUse == "00:00:00:00:00:00") return false;
+    
+    if (!_isConnected || _activePowerAction == "shutdown" || _activePowerAction == "sleep") {
+      return true;
     }
-    return isSameLanSubnet;
+    return isSameLanSubnet || isLanConnection;
+  }
+
+  /// Gửi gói tin Magic Packet Wake-on-LAN tới cả Subnet Broadcast (192.168.x.255) và Global Broadcast (255.255.255.255) qua UDP Port 7 & 9
+  Future<bool> sendWakeOnLan() async {
+    try {
+      final macToUse = macAddress;
+      if (macToUse.isEmpty || macToUse == "00:00:00:00:00:00") {
+        return false;
+      }
+      final cleanMac = macToUse.replaceAll(RegExp(r'[:\-]'), '');
+      if (cleanMac.length != 12) return false;
+
+      final macBytes = List<int>.generate(
+        6,
+        (i) => int.parse(cleanMac.substring(i * 2, i * 2 + 2), radix: 16),
+      );
+
+      final packet = List<int>.filled(6, 0xFF) + List<int>.generate(16 * 6, (i) => macBytes[i % 6]);
+
+      final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+      socket.broadcastEnabled = true;
+
+      // 1. Gửi tới Global Broadcast 255.255.255.255 (Ports 7 & 9)
+      socket.send(packet, InternetAddress('255.255.255.255'), 9);
+      socket.send(packet, InternetAddress('255.255.255.255'), 7);
+
+      // 2. Gửi tới Subnet Broadcast (VD: 192.168.100.255 hoặc 192.168.1.255)
+      final ipToUse = _laptopLanIp.isNotEmpty ? _laptopLanIp : _serverIp;
+      if (ipToUse.contains('.')) {
+        final parts = ipToUse.split('.');
+        if (parts.length == 4) {
+          final subnetBroadcast = "${parts[0]}.${parts[1]}.${parts[2]}.255";
+          socket.send(packet, InternetAddress(subnetBroadcast), 9);
+          socket.send(packet, InternetAddress(subnetBroadcast), 7);
+        }
+      }
+
+      socket.close();
+      print("⚡ Sent WoL Magic Packet to $macToUse on Ports 7 & 9");
+      return true;
+    } catch (e) {
+      print("❌ WoL Send Error: $e");
+      return false;
+    }
+  }
+
+  Future<void> triggerPowerAction(String action) async {
+    _activePowerAction = action;
+    if (action == "shutdown" || action == "sleep") {
+      _isConnected = false;
+    }
+    notifyListeners();
+
+    final apiService = ApiService(
+      baseIp: _serverIp,
+      port: _serverPort,
+      apiKey: _apiKey,
+      deviceId: _deviceId,
+      devicePassword: _devicePassword,
+    );
+
+    await apiService.sendControlCommand(action);
+
+    if (action == "restart") {
+      // Giữ khóa toàn bộ nút trong 10s khi đang Restart
+      await Future.delayed(const Duration(seconds: 10));
+    } else {
+      await Future.delayed(const Duration(seconds: 1));
+    }
+    _activePowerAction = null;
+    notifyListeners();
   }
 
   ControlProvider() {
