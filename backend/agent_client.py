@@ -49,15 +49,14 @@ async def start_agent():
                     global is_paired_active
                     while True:
                         try:
-                            # Chỉ gửi thông số phần cứng khi đang ở trong Session ghép nối Active
-                            if is_paired_active:
-                                status_data = SystemService.get_system_status()
-                                status_data["device_id"] = DEVICE_ID
-                                payload = {
-                                    "type": "status_update",
-                                    "data": status_data
-                                }
-                                await websocket.send(json.dumps(payload))
+                            # Luôn gửi thông số phần cứng để Cloud Relay nhận biết Laptop đang Online
+                            status_data = SystemService.get_system_status()
+                            status_data["device_id"] = DEVICE_ID
+                            payload = {
+                                "type": "status_update",
+                                "data": status_data
+                            }
+                            await websocket.send(json.dumps(payload))
                             await asyncio.sleep(2)
                         except Exception as e:
                             print(f"[Status Loop Error]: {e}")
