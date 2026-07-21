@@ -24,10 +24,12 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Install dependencies
+      - name: Install dependencies & CocoaPods
         run: |
           cd mobile_app
           flutter pub get
+          cd ios
+          pod install
 
       - name: Build iOS App (.ipa payload)
         run: |
