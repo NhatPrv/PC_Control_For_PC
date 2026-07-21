@@ -9,8 +9,25 @@ CURRENT_OS = platform.system()
 
 class SystemService:
     @staticmethod
+    def _init_win_com():
+        """Khởi tạo Windows COM Threading Apartment trước khi gọi dịch vụ âm thanh."""
+        if CURRENT_OS == 'Windows':
+            try:
+                import comtypes
+                comtypes.CoInitialize()
+            except Exception:
+                pass
+            try:
+                import pythoncom
+                pythoncom.CoInitialize()
+            except Exception:
+                pass
+
+    @staticmethod
     def _get_win_volume_endpoint():
-        """Khởi tạo Windows Core Audio COM Endpoint trực tiếp."""
+        """Khởi tạo Windows Core Audio COM Endpoint trực tiếp (Thread-safe 100%)."""
+        SystemService._init_win_com()
+
         from comtypes import GUID, client, CLSCTX_ALL
         from ctypes import POINTER, cast
         from pycaw.pycaw import IAudioEndpointVolume, IMMDeviceEnumerator
@@ -29,7 +46,6 @@ class SystemService:
         """Lấy địa chỉ MAC Address card mạng phần cứng của PC để phục vụ Wake-on-LAN."""
         try:
             for iface, addrs in psutil.net_if_addrs().items():
-                # Bỏ qua các interface ảo vEthernet / Loopback
                 if "loopback" in iface.lower() or "vethernet" in iface.lower() or "vmware" in iface.lower():
                     continue
                 for addr in addrs:
@@ -80,7 +96,8 @@ class SystemService:
             try:
                 endpoint = SystemService._get_win_volume_endpoint()
                 return bool(endpoint.GetMute())
-            except Exception:
+            except Exception as e:
+                print(f"Error getting mute status: {e}")
                 return False
         return False
 
@@ -92,6 +109,7 @@ class SystemService:
                 endpoint = SystemService._get_win_volume_endpoint()
                 current_mute = endpoint.GetMute()
                 endpoint.SetMute(0 if current_mute else 1, None)
+                print(f"🔊 Toggled Mute -> {'Muted' if not current_mute else 'Unmuted'}")
                 return True
             except Exception as e:
                 print(f"Error toggling mute: {e}")
@@ -144,10 +162,22 @@ class SystemService:
                     endpoint.SetMute(1, None)
                 
                 endpoint.SetMasterVolumeLevelScalar(level / 100.0, None)
+                print(f"🔊 Changed Volume to {level}%")
                 return True
             except Exception as e:
                 print(f"Windows Set Volume error: {e}")
                 return False
+        elif CURRENT_OS == 'Linux':
+            try:
+                subprocess.run(["amixer", "-q", "-D", "pulse", "sset", "Master", f"{level}%"], check=True)
+                return True
+            except Exception:
+                try:
+                    subprocess.run(["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{level}%"], check=True)
+                    return True
+                except Exception as e:
+                    print(f"Linux Volume error: {e}")
+                    return False
         return False
 
     @staticmethod
@@ -161,6 +191,16 @@ class SystemService:
                 os.system("shutdown /r /t 2")
             elif action == 'sleep':
                 os.system("rundll32.exe powrprof.dll,SetSuspendState 0,1,0")
+            else:
+                return False
+            return True
+        elif CURRENT_OS == 'Linux':
+            if action == 'shutdown':
+                subprocess.run(["systemctl", "poweroff"])
+            elif action == 'restart':
+                subprocess.run(["systemctl", "reboot"])
+            elif action == 'sleep':
+                subprocess.run(["systemctl", "suspend"])
             else:
                 return False
             return True
