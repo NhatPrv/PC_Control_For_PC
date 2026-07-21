@@ -39,6 +39,7 @@ dependencies:
   shared_preferences: ^2.2.2
   qr_flutter: ^4.1.0
   mobile_scanner: ^5.2.3
+  wake_on_lan: ^4.0.0
 
 dev_dependencies:
   flutter_test:

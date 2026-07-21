@@ -25,8 +25,25 @@ class SystemService:
         return cast(endpoint, POINTER(IAudioEndpointVolume))
 
     @staticmethod
+    def get_mac_address() -> str:
+        """Lấy địa chỉ MAC Address card mạng phần cứng của PC để phục vụ Wake-on-LAN."""
+        try:
+            for iface, addrs in psutil.net_if_addrs().items():
+                # Bỏ qua các interface ảo vEthernet / Loopback
+                if "loopback" in iface.lower() or "vethernet" in iface.lower() or "vmware" in iface.lower():
+                    continue
+                for addr in addrs:
+                    if addr.family == psutil.AF_LINK and addr.address:
+                        mac = addr.address.replace("-", ":").upper()
+                        if mac != "00:00:00:00:00:00":
+                            return mac
+        except Exception:
+            pass
+        return "00:00:00:00:00:00"
+
+    @staticmethod
     def get_system_status() -> Dict[str, Any]:
-        """Lấy thông số tải CPU, RAM, Pin, Âm lượng và trạng thái Mute hiện tại."""
+        """Lấy thông số tải CPU, RAM, Pin, Âm lượng, Trạng thái Mute và địa chỉ MAC Address."""
         cpu_usage = psutil.cpu_percent(interval=0.5)
         ram_usage = psutil.virtual_memory().percent
         
@@ -52,7 +69,8 @@ class SystemService:
             "battery": battery_data,
             "brightness": current_brightness,
             "volume": SystemService.get_volume(),
-            "is_muted": is_muted
+            "is_muted": is_muted,
+            "mac_address": SystemService.get_mac_address()
         }
 
     @staticmethod
