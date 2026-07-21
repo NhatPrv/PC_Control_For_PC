@@ -7,6 +7,9 @@ import uuid
 import threading
 import uvicorn
 
+# Đảm bảo mã hóa UTF-8 trên Windows console không bị lỗi charmap
+sys.stdout.reconfigure(encoding='utf-8')
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from app.services.system_service import SystemService
 from main import app as fastapi_app
@@ -23,10 +26,10 @@ is_paired_active = False
 def run_local_fastapi_server():
     """Khởi chạy Local FastAPI Server trên cổng 8002 để lắng nghe kết nối LAN trực tiếp từ Điện thoại."""
     try:
-        print(f"🚀 Starting Local LAN HTTP/API Server on 0.0.0.0:8002 ...")
+        print(f"[LAN Server] Starting Local LAN HTTP/API Server on 0.0.0.0:8002 ...")
         uvicorn.run(fastapi_app, host="0.0.0.0", port=8002, log_level="warning")
     except Exception as e:
-        print(f"Local FastAPI Server error: {e}")
+        print(f"[LAN Server Error]: {e}")
 
 async def start_agent():
     global is_paired_active
@@ -35,12 +38,12 @@ async def start_agent():
     server_thread = threading.Thread(target=run_local_fastapi_server, daemon=True)
     server_thread.start()
 
-    print(f"🔄 Connecting Laptop Agent [{DEVICE_ID}] to AWS EC2: ws://{AWS_EC2_IP}:{AWS_EC2_PORT}/ws/laptop ...")
+    print(f"[Agent] Connecting Laptop Agent [{DEVICE_ID}] to AWS EC2: ws://{AWS_EC2_IP}:{AWS_EC2_PORT}/ws/laptop ...")
     
     while True:
         try:
             async with websockets.connect(WS_URL) as websocket:
-                print(f"🟢 Successfully authenticated & connected to AWS EC2 Relay Server as [{DEVICE_ID}]!")
+                print(f"[Agent] Successfully authenticated & connected to AWS EC2 Relay Server as [{DEVICE_ID}]!")
                 
                 async def send_status_loop():
                     global is_paired_active
@@ -57,7 +60,7 @@ async def start_agent():
                                 await websocket.send(json.dumps(payload))
                             await asyncio.sleep(2)
                         except Exception as e:
-                            print(f"Status loop error: {e}")
+                            print(f"[Status Loop Error]: {e}")
                             break
 
                 async def receive_commands_loop():
@@ -70,15 +73,15 @@ async def start_agent():
                             msg_type = data.get("type")
                             if msg_type == "session_disconnected":
                                 is_paired_active = False
-                                print(f"🛑 Session Disconnected by Mobile App. Pausing hardware telemetry.")
+                                print(f"[Agent] Session Disconnected by Mobile App. Pausing hardware telemetry.")
                             elif msg_type == "command":
                                 action = data.get("action")
                                 val = data.get("value")
-                                print(f"⚡ Received Command [{DEVICE_ID}] from AWS EC2: action={action}, value={val}")
+                                print(f"[Command] Received Command [{DEVICE_ID}] from AWS EC2: action={action}, value={val}")
                                 
                                 if action == "connect":
                                     is_paired_active = True
-                                    print(f"🎉 Session Activated & Paired with Mobile App!")
+                                    print(f"[Agent] Session Activated & Paired with Mobile App!")
                                 elif action in ["shutdown", "restart", "sleep"]:
                                     SystemService.execute_power_action(action)
                                 elif action == "brightness" and val is not None:
@@ -88,13 +91,13 @@ async def start_agent():
                                 elif action == "mute":
                                     SystemService.toggle_mute()
                         except Exception as e:
-                            print(f"Receive loop error: {e}")
+                            print(f"[Receive Loop Error]: {e}")
                             break
 
                 await asyncio.gather(send_status_loop(), receive_commands_loop())
 
         except Exception as e:
-            print(f"❌ Connection failed or Disconnected: {e}. Retrying in 5 seconds...")
+            print(f"[Agent Error] Connection failed or Disconnected: {e}. Retrying in 5 seconds...")
             await asyncio.sleep(5)
 
 if __name__ == "__main__":
