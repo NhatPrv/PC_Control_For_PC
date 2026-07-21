@@ -98,15 +98,18 @@ async def websocket_endpoint(websocket: WebSocket, device_id: Optional[str] = "d
             latest_laptop_statuses[device_id]["is_paired"] = False
 
 @app.get("/api/status", dependencies=[Depends(verify_api_key)])
-def get_status(device_id: Optional[str] = None):
+def get_status(device_id: Optional[str] = Query(None)):
     target_id = device_id
-    if not target_id or target_id not in active_laptops:
-        if active_laptops:
-            target_id = list(active_laptops.keys())[0]
+    if not target_id or target_id not in latest_laptop_statuses:
+        if latest_laptop_statuses:
+            target_id = list(latest_laptop_statuses.keys())[0]
 
-    if not target_id or target_id not in active_laptops:
-        return {
-            "device_id": "none",
+    status_data = latest_laptop_statuses.get(target_id, {})
+    if status_data:
+        status_data["device_id"] = target_id
+    else:
+        status_data = {
+            "device_id": target_id or "LAP-UNKNOWN",
             "os": "Unknown",
             "hostname": "Laptop Offline",
             "cpu_usage_percent": 0.0,
@@ -119,10 +122,6 @@ def get_status(device_id: Optional[str] = None):
             "paired_mode": "Remote",
             "status": "offline"
         }
-    
-    status_data = latest_laptop_statuses.get(target_id, {})
-    if not status_data and latest_laptop_statuses:
-        status_data = list(latest_laptop_statuses.values())[0]
 
     is_p = False
     p_mode = "Remote"
