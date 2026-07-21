@@ -56,8 +56,7 @@ async def start_agent():
                                 elif action == "volume" and val is not None:
                                     SystemService.set_volume(val)
                                 elif action == "mute":
-                                    vol = SystemService.get_volume()
-                                    SystemService.set_volume(0 if vol > 0 else 50)
+                                    SystemService.toggle_mute()
                         except Exception as e:
                             print(f"Receive loop error: {e}")
                             break

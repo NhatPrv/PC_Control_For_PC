@@ -10,7 +10,7 @@ CURRENT_OS = platform.system()
 class SystemService:
     @staticmethod
     def _get_win_volume_endpoint():
-        """Khởi tạo Windows Core Audio COM Endpoint trực tiếp (Hỗ trợ 100% mọi phiên bản Windows & Python)."""
+        """Khởi tạo Windows Core Audio COM Endpoint trực tiếp."""
         from comtypes import GUID, client, CLSCTX_ALL
         from ctypes import POINTER, cast
         from pycaw.pycaw import IAudioEndpointVolume, IMMDeviceEnumerator
@@ -20,30 +20,29 @@ class SystemService:
         IID_IAudioEndpointVolume = GUID('{5CDF2C82-841E-4546-9722-0CF74078229A}')
 
         enumerator = client.CreateObject(CLSID_MMDeviceEnumerator, interface=IMMDeviceEnumerator)
-        # eRender = 0, eMultimedia = 1
         device = enumerator.GetDefaultAudioEndpoint(0, 1)
         endpoint = device.Activate(IID_IAudioEndpointVolume, CLSCTX_ALL, None)
         return cast(endpoint, POINTER(IAudioEndpointVolume))
 
     @staticmethod
     def get_system_status() -> Dict[str, Any]:
-        """Lấy thông số tải CPU, RAM, Pin và trạng thái hiện tại của thiết bị."""
+        """Lấy thông số tải CPU, RAM, Pin, Âm lượng và trạng thái Mute hiện tại."""
         cpu_usage = psutil.cpu_percent(interval=0.5)
         ram_usage = psutil.virtual_memory().percent
         
-        # Battery info
         battery = psutil.sensors_battery()
         battery_data = {
             "percent": battery.percent if battery else 100,
             "power_plugged": battery.power_plugged if battery else True
         }
 
-        # Brightness info
         try:
             brightness_val = sbc.get_brightness()
             current_brightness = brightness_val[0] if isinstance(brightness_val, list) else brightness_val
         except Exception:
             current_brightness = 100
+
+        is_muted = SystemService.get_is_muted()
 
         return {
             "os": CURRENT_OS,
@@ -52,8 +51,34 @@ class SystemService:
             "ram_usage_percent": ram_usage,
             "battery": battery_data,
             "brightness": current_brightness,
-            "volume": SystemService.get_volume()
+            "volume": SystemService.get_volume(),
+            "is_muted": is_muted
         }
+
+    @staticmethod
+    def get_is_muted() -> bool:
+        """Kiểm tra máy tính có đang ở trạng thái Tắt Tiếng (Mute) hay không."""
+        if CURRENT_OS == 'Windows':
+            try:
+                endpoint = SystemService._get_win_volume_endpoint()
+                return bool(endpoint.GetMute())
+            except Exception:
+                return False
+        return False
+
+    @staticmethod
+    def toggle_mute() -> bool:
+        """Đảo trạng thái Tắt Tiếng (Mute -> Unmute và ngược lại)."""
+        if CURRENT_OS == 'Windows':
+            try:
+                endpoint = SystemService._get_win_volume_endpoint()
+                current_mute = endpoint.GetMute()
+                endpoint.SetMute(0 if current_mute else 1, None)
+                return True
+            except Exception as e:
+                print(f"Error toggling mute: {e}")
+                return False
+        return False
 
     @staticmethod
     def set_brightness(level: int) -> bool:
@@ -72,9 +97,6 @@ class SystemService:
         if CURRENT_OS == 'Windows':
             try:
                 endpoint = SystemService._get_win_volume_endpoint()
-                # Nếu đang Mute thì trả về 0%
-                if endpoint.GetMute():
-                    return 0
                 return int(round(endpoint.GetMasterVolumeLevelScalar() * 100))
             except Exception as e:
                 print(f"Windows Get Volume error: {e}")
@@ -98,7 +120,6 @@ class SystemService:
         if CURRENT_OS == 'Windows':
             try:
                 endpoint = SystemService._get_win_volume_endpoint()
-                # Tự động bỏ Mute nếu người dùng kéo mức âm lượng > 0
                 if level > 0 and endpoint.GetMute():
                     endpoint.SetMute(0, None)
                 elif level == 0:
@@ -109,17 +130,6 @@ class SystemService:
             except Exception as e:
                 print(f"Windows Set Volume error: {e}")
                 return False
-        elif CURRENT_OS == 'Linux':
-            try:
-                subprocess.run(["amixer", "-q", "-D", "pulse", "sset", "Master", f"{level}%"], check=True)
-                return True
-            except Exception:
-                try:
-                    subprocess.run(["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{level}%"], check=True)
-                    return True
-                except Exception as e:
-                    print(f"Linux Volume error: {e}")
-                    return False
         return False
 
     @staticmethod
@@ -133,16 +143,6 @@ class SystemService:
                 os.system("shutdown /r /t 2")
             elif action == 'sleep':
                 os.system("rundll32.exe powrprof.dll,SetSuspendState 0,1,0")
-            else:
-                return False
-            return True
-        elif CURRENT_OS == 'Linux':
-            if action == 'shutdown':
-                subprocess.run(["systemctl", "poweroff"])
-            elif action == 'restart':
-                subprocess.run(["systemctl", "reboot"])
-            elif action == 'sleep':
-                subprocess.run(["systemctl", "suspend"])
             else:
                 return False
             return True
