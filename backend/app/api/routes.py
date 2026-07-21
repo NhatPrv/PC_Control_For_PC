@@ -18,24 +18,35 @@ def verify_api_key(x_api_key: Optional[str] = Header(None)):
     if settings.API_KEY and x_api_key != settings.API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API Key")
 
+current_paired_phone: Optional[str] = None
+
 @router.get("/status", dependencies=[Depends(verify_api_key)])
 def get_status():
     """Lấy toàn bộ thông số tải hệ thống, dung lượng pin, âm lượng và độ sáng."""
+    global current_paired_phone
     status_data = SystemService.get_system_status()
-    status_data["connected"] = True
-    status_data["is_paired"] = True
-    status_data["paired_mode"] = "LAN"
+    is_active = current_paired_phone is not None
+    status_data["connected"] = is_active
+    status_data["is_paired"] = is_active
+    status_data["paired_mode"] = "LAN" if is_active else "Standby"
+    status_data["paired_device"] = current_paired_phone
     return status_data
 
 @router.post("/disconnect", dependencies=[Depends(verify_api_key)])
 def disconnect_session():
     """Ngắt kết nối LAN."""
+    global current_paired_phone
+    current_paired_phone = None
+    print("🔴 Active Mobile Session Disconnected!")
     return {"status": "success", "message": "Disconnected LAN session."}
 
 @router.post("/control", dependencies=[Depends(verify_api_key)])
 def execute_control(req: ControlRequest):
     """Xử lý các thao tác điều khiển thiết bị."""
+    global current_paired_phone
     if req.action == "connect":
+        current_paired_phone = "Mobile Device"
+        print("🟢 Active Mobile Session Connected & Paired!")
         return {"status": "success", "message": "LAN connection active."}
     if req.action in ["shutdown", "restart", "sleep"]:
         success = SystemService.execute_power_action(req.action)
