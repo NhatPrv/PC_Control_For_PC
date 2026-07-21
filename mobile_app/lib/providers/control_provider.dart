@@ -165,27 +165,6 @@ class ControlProvider extends ChangeNotifier {
 
     String finalTargetIp = ip;
 
-    // ƯU TIÊN LAN MODE HÀNG ĐẦU: Nếu có lanIp nội bộ ➔ Thử kết nối LAN IP trước!
-    if (lanIp != null && lanIp.isNotEmpty) {
-      _laptopLanIp = lanIp;
-      
-      final lanApiService = ApiService(
-        baseIp: lanIp,
-        port: port,
-        apiKey: key,
-        deviceId: devId ?? _deviceId,
-        devicePassword: pass ?? _devicePassword,
-      );
-      
-      final testLanStatus = await lanApiService.getStatus();
-      if (testLanStatus != null) {
-        finalTargetIp = lanIp;
-        print("⚡ Successfully connected via LAN IP: $lanIp");
-      } else {
-        print("🌐 LAN IP ($lanIp) unreachable. Falling back to Remote Cloud IP: $ip");
-      }
-    }
-
     _serverIp = finalTargetIp;
     _serverPort = port;
     _apiKey = key;
@@ -197,6 +176,28 @@ class ControlProvider extends ChangeNotifier {
     }
     if (mac != null && mac.isNotEmpty) {
       _macAddress = mac;
+    }
+
+    // ƯU TIÊN LAN MODE HÀNG ĐẦU: Nếu có lanIp nội bộ ➔ Thử kết nối LAN IP trước!
+    if (lanIp != null && lanIp.isNotEmpty) {
+      _laptopLanIp = lanIp;
+      
+      final lanApiService = ApiService(
+        baseIp: lanIp,
+        port: port,
+        apiKey: key,
+        deviceId: _deviceId,
+        devicePassword: _devicePassword,
+      );
+      
+      final testLanStatus = await lanApiService.getStatus();
+      if (testLanStatus != null) {
+        finalTargetIp = lanIp;
+        _serverIp = finalTargetIp;
+        print("⚡ Successfully connected via LAN IP: $lanIp");
+      } else {
+        print("🌐 LAN IP ($lanIp) unreachable. Falling back to Remote Cloud IP: $ip");
+      }
     }
 
     _isConnected = true;
@@ -266,11 +267,13 @@ class ControlProvider extends ChangeNotifier {
     if (status != null) {
       _status = status;
       
-      // Đồng bộ Device ID nếu trước đó là default_device
-      if (_deviceId == "default_device" && status.deviceId.isNotEmpty && status.deviceId != "default_device") {
-        _deviceId = status.deviceId;
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('device_id', status.deviceId);
+      // Tự động đồng bộ Device ID nếu từ server trả về deviceId mới hơn (ví dụ máy tính vừa khởi động lại)
+      if (status.deviceId.isNotEmpty && status.deviceId != "default_device" && status.deviceId != "LAP-UNKNOWN") {
+        if (_deviceId != status.deviceId) {
+          _deviceId = status.deviceId;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('device_id', status.deviceId);
+        }
       }
 
       if (status.isPaired || status.connected) {
