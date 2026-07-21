@@ -371,32 +371,7 @@ class ControlProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Gửi gói tin Magic Packet Wake-on-LAN trực tiếp qua UDP Broadcast
-  Future<bool> sendWakeOnLan() async {
-    try {
-      final macToUse = macAddress;
-      if (macToUse.isEmpty || macToUse == "00:00:00:00:00:00") {
-        return false;
-      }
-      final cleanMac = macToUse.replaceAll(RegExp(r'[:\-]'), '');
-      if (cleanMac.length != 12) return false;
 
-      final macBytes = List<int>.generate(
-        6,
-        (i) => int.parse(cleanMac.substring(i * 2, i * 2 + 2), radix: 16),
-      );
-
-      final packet = List<int>.filled(6, 0xFF) + List<int>.generate(16 * 6, (i) => macBytes[i % 6]);
-
-      final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
-      socket.broadcastEnabled = true;
-      socket.send(packet, InternetAddress('255.255.255.255'), 9);
-      socket.close();
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
 
   Future<void> disconnect() async {
     final apiService = ApiService(
@@ -448,24 +423,7 @@ class ControlProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> triggerPowerAction(String action) async {
-    _activePowerAction = action;
-    notifyListeners();
 
-    final apiService = ApiService(
-      baseIp: _serverIp,
-      port: _serverPort,
-      apiKey: _apiKey,
-      deviceId: _deviceId,
-      devicePassword: _devicePassword,
-    );
-
-    await apiService.sendControlCommand(action);
-
-    await Future.delayed(const Duration(seconds: 1));
-    _activePowerAction = null;
-    notifyListeners();
-  }
 
   Future<void> changeBrightness(int value) async {
     if (_status != null) {
