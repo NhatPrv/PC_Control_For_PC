@@ -419,15 +419,29 @@ class ControlProvider extends ChangeNotifier {
       );
       status = await localApiService.getStatus();
     } else {
-      // MOBILE APP: Hỏi server đích (_serverIp) như bình thường
-      final mainApiService = ApiService(
-        baseIp: _serverIp,
-        port: _serverPort,
-        apiKey: _apiKey,
-        deviceId: _deviceId,
-        devicePassword: _devicePassword,
-      );
-      status = await mainApiService.getStatus();
+      // MOBILE APP: ƯU TIÊN HÀNG ĐẦU HỎI MẠNG LAN NỘI BỘ (_laptopLanIp) TRƯỚC!
+      if (_laptopLanIp.isNotEmpty) {
+        final lanApiService = ApiService(
+          baseIp: _laptopLanIp,
+          port: _serverPort,
+          apiKey: _apiKey,
+          deviceId: _deviceId,
+          devicePassword: _devicePassword,
+        );
+        status = await lanApiService.getStatus();
+      }
+
+      // Nếu không nối được qua LAN (do khác Wi-Fi hoặc ra ngoài đường) ➔ Mới dùng Server Cloud Relay
+      if (status == null) {
+        final cloudApiService = ApiService(
+          baseIp: _serverIp,
+          port: _serverPort,
+          apiKey: _apiKey,
+          deviceId: _deviceId,
+          devicePassword: _devicePassword,
+        );
+        status = await cloudApiService.getStatus();
+      }
     }
 
     if (status != null) {
