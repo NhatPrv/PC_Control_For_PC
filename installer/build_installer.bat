@@ -3,8 +3,9 @@ echo ====================================================================
 echo BUILDING PC CONTROL ALL-IN-ONE (WINDOWS SETUP .EXE AND ANDROID .APK)
 echo ====================================================================
 
-echo 1/3. Building Flutter Windows Executable...
+echo 1/3. Fetching dependencies and building Flutter Windows Executable...
 cd ..\mobile_app
+call flutter pub get
 call flutter build windows --release
 
 echo.
