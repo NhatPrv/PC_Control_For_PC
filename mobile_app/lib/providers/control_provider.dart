@@ -71,10 +71,10 @@ class ControlProvider extends ChangeNotifier {
   }
 
   /// Trạng thái đang Sleep
-  bool get isSleepingState => _activePowerAction == "sleep" || _status?.status == "sleeping";
+  bool get isSleepingState => _activePowerAction == "sleep";
 
   /// Trạng thái đang Shutdown
-  bool get isShutdownState => _activePowerAction == "shutdown" || _status?.status == "offline" || _status?.status == "shutdown";
+  bool get isShutdownState => _activePowerAction == "shutdown";
 
   /// Text hiển thị trạng thái chuẩn
   String get displayStatusText {
