@@ -125,16 +125,11 @@ def get_status(device_id: Optional[str] = Query(None)):
 
     is_p = False
     p_mode = "Remote"
-    for sess in paired_sessions.values():
-        if sess.get("is_paired", False):
-            is_p = True
-            p_mode = sess.get("paired_mode", "Remote")
-            break
-
-    # Nếu có Laptop Agent đang kết nối WebSocket thực tế ➔ Chỉ giữ Paired Active nếu KHÔNG ở trạng thái sleeping/offline
-    if target_id in active_laptops and paired_sessions:
+    sess = paired_sessions.get(target_id)
+    if sess and sess.get("is_paired", False):
         if status_data.get("status") not in ["sleeping", "offline"]:
             is_p = True
+            p_mode = sess.get("paired_mode", "Remote")
 
     status_data["connected"] = is_p
     status_data["is_paired"] = is_p

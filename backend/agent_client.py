@@ -12,6 +12,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from app.services.system_service import SystemService
+from app.api import routes
 from main import app as fastapi_app
 
 AWS_EC2_IP = os.getenv("AWS_EC2_IP", "18.143.90.229")
@@ -72,6 +73,7 @@ async def start_agent():
                             msg_type = data.get("type")
                             if msg_type == "session_disconnected":
                                 is_paired_active = False
+                                routes.current_paired_phone = None
                                 print(f"[Agent] Session Disconnected by Mobile App. Pausing hardware telemetry.")
                             elif msg_type == "command":
                                 action = data.get("action")
@@ -80,8 +82,10 @@ async def start_agent():
                                 
                                 if action == "connect":
                                     is_paired_active = True
+                                    routes.current_paired_phone = "Mobile App (Remote)"
                                     print(f"[Agent] Session Activated & Paired with Mobile App!")
                                 elif action in ["shutdown", "restart", "sleep"]:
+                                    routes.current_paired_phone = None
                                     SystemService.execute_power_action(action)
                                 elif action == "unlock":
                                     pass_val = str(val) if val is not None else ""
