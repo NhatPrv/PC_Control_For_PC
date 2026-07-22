@@ -200,10 +200,16 @@ class ControlProvider extends ChangeNotifier {
     if (action == "restart") {
       // Giữ khóa toàn bộ nút trong 10s khi đang Restart
       await Future.delayed(const Duration(seconds: 10));
+      _activePowerAction = null;
+    } else if (action == "sleep" || action == "shutdown") {
+      // Giữ nguyên _activePowerAction = "sleep" / "shutdown" vĩnh viễn!
+      // Không reset về null sau 1s để giữ giao diện màu VÀNG SLEEPING liên tục!
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('active_power_action', action);
     } else {
       await Future.delayed(const Duration(seconds: 1));
+      _activePowerAction = null;
     }
-    _activePowerAction = null;
     notifyListeners();
   }
 
@@ -259,6 +265,7 @@ class ControlProvider extends ChangeNotifier {
     _deviceId = prefs.getString('device_id') ?? "default_device";
     _devicePassword = prefs.getString('device_password') ?? "";
     _macAddress = prefs.getString('mac_address') ?? "";
+    _activePowerAction = prefs.getString('active_power_action');
     _isConnected = prefs.getBool('is_connected') ?? false;
     _manuallyDisconnected = prefs.getBool('manually_disconnected') ?? false;
 
@@ -412,6 +419,7 @@ class ControlProvider extends ChangeNotifier {
         _activePowerAction = null; // Reset trạng thái power action khi máy tính đã bật Online trở lại
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('is_connected', true);
+        await prefs.remove('active_power_action');
       } else {
         _isConnected = false;
       }
