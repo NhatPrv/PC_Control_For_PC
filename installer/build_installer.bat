@@ -5,6 +5,7 @@ echo ====================================================================
 
 echo 1/3. Fetching dependencies and building Flutter Windows Executable...
 cd ..\mobile_app
+call flutter clean
 call flutter pub get
 call flutter build windows --release
 
