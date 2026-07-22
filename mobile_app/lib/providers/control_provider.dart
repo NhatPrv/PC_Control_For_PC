@@ -87,7 +87,7 @@ class ControlProvider extends ChangeNotifier {
     return true;
   }
 
-  /// Gửi gói tin Magic Packet Wake-on-LAN tới cả Subnet Broadcast (192.168.x.255) và Global Broadcast (255.255.255.255) qua UDP Port 7 & 9
+  /// Gửi gói tin Magic Packet Wake-on-LAN 3 đợt liên tiếp tới MAC phần cứng chuẩn qua UDP Ports 7, 9, 9000
   Future<bool> sendWakeOnLan() async {
     try {
       final macToUse = macAddress;
@@ -107,31 +107,35 @@ class ControlProvider extends ChangeNotifier {
       final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
       socket.broadcastEnabled = true;
 
-      // 1. Gửi tới Global Broadcast 255.255.255.255 (Ports 7 & 9)
-      socket.send(packet, InternetAddress('255.255.255.255'), 9);
-      socket.send(packet, InternetAddress('255.255.255.255'), 7);
-
-      // 2. Gửi tới tất cả Subnet Broadcast tiềm năng (Phone Wi-Fi IP, Laptop LAN IP)
       final candidateIps = <String>{
         if (_phoneWifiIp != null && _phoneWifiIp!.isNotEmpty) _phoneWifiIp!,
         if (_laptopLanIp.isNotEmpty) _laptopLanIp,
         if (_serverIp.isNotEmpty) _serverIp,
       };
 
-      for (final rawIp in candidateIps) {
-        if (rawIp.contains('.')) {
-          final parts = rawIp.split('.');
-          if (parts.length == 4 && (parts[0] == "192" || parts[0] == "10" || parts[0] == "172")) {
-            final subnetBroadcast = "${parts[0]}.${parts[1]}.${parts[2]}.255";
-            socket.send(packet, InternetAddress(subnetBroadcast), 9);
-            socket.send(packet, InternetAddress(subnetBroadcast), 7);
-            print("⚡ Broadcasted WoL Magic Packet to Subnet: $subnetBroadcast (Ports 7 & 9)");
+      // Gửi 3 đợt burst liên tiếp (cách nhau 100ms) để đảm bảo không bị rớt gói tin
+      for (int burst = 0; burst < 3; burst++) {
+        // 1. Global Broadcast 255.255.255.255
+        socket.send(packet, InternetAddress('255.255.255.255'), 9);
+        socket.send(packet, InternetAddress('255.255.255.255'), 7);
+
+        // 2. Subnet Broadcasts (192.168.x.255)
+        for (final rawIp in candidateIps) {
+          if (rawIp.contains('.')) {
+            final parts = rawIp.split('.');
+            if (parts.length == 4 && (parts[0] == "192" || parts[0] == "10" || parts[0] == "172")) {
+              final subnetBroadcast = "${parts[0]}.${parts[1]}.${parts[2]}.255";
+              socket.send(packet, InternetAddress(subnetBroadcast), 9);
+              socket.send(packet, InternetAddress(subnetBroadcast), 7);
+              socket.send(packet, InternetAddress(subnetBroadcast), 9000);
+            }
           }
         }
+        await Future.delayed(const Duration(milliseconds: 100));
       }
 
       socket.close();
-      print("⚡ Sent WoL Magic Packet to $macToUse on Ports 7 & 9");
+      print("⚡ Sent 3x WoL Magic Packet Bursts to hardware MAC $macToUse");
       return true;
     } catch (e) {
       print("❌ WoL Send Error: $e");

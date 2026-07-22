@@ -38,19 +38,33 @@ class SystemService:
 
     @staticmethod
     def get_mac_address() -> str:
-        """Lấy địa chỉ MAC Address card mạng phần cứng của PC để phục vụ Wake-on-LAN."""
+        """Lấy địa chỉ MAC Address card mạng phần cứng thực tế (Wi-Fi/Ethernet) để phục vụ Wake-on-LAN."""
         try:
-            for iface, addrs in psutil.net_if_addrs().items():
-                if "loopback" in iface.lower() or "vethernet" in iface.lower() or "vmware" in iface.lower():
-                    continue
-                for addr in addrs:
-                    if addr.family == psutil.AF_LINK and addr.address:
-                        mac = addr.address.replace("-", ":").upper()
-                        if mac != "00:00:00:00:00:00":
-                            return mac
+            addrs_map = psutil.net_if_addrs()
+            
+            # Ưu tiên 1: Card mạng Wi-Fi hoặc Ethernet vật lý thật
+            for iface, addrs in addrs_map.items():
+                name_lower = iface.lower()
+                if any(v in name_lower for v in ["wi-fi", "wifi", "ethernet"]) and not any(v in name_lower for v in ["radmin", "vpn", "virtual", "vbox", "vethernet", "vmware", "teredo", "pseudo"]):
+                    for addr in addrs:
+                        if addr.family == psutil.AF_LINK and addr.address:
+                            mac = addr.address.replace("-", ":").upper()
+                            if mac != "00:00:00:00:00:00" and not mac.startswith("02:50"):
+                                return mac
+
+            # Ưu tiên 2: Bất kỳ card nào không phải virtual/vpn/radmin
+            for iface, addrs in addrs_map.items():
+                name_lower = iface.lower()
+                if not any(v in name_lower for v in ["loopback", "vethernet", "vmware", "radmin", "vpn", "vbox", "teredo", "pseudo"]):
+                    for addr in addrs:
+                        if addr.family == psutil.AF_LINK and addr.address:
+                            mac = addr.address.replace("-", ":").upper()
+                            if mac != "00:00:00:00:00:00" and not mac.startswith("02:50"):
+                                return mac
+
+            return "00:00:00:00:00:00"
         except Exception:
-            pass
-        return "00:00:00:00:00:00"
+            return "00:00:00:00:00:00"
 
     @staticmethod
     def get_lan_ip() -> str:
