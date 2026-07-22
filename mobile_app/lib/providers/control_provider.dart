@@ -149,9 +149,14 @@ class ControlProvider extends ChangeNotifier {
           socket.send(packet, InternetAddress('255.255.255.255'), 9);
           socket.send(packet, InternetAddress('255.255.255.255'), 7);
 
-          // 2. Subnet Broadcasts (192.168.x.255)
+          // 2. Subnet Broadcasts (192.168.x.255) & Unicast tới IP LAN máy tính
           for (final rawIp in candidateIps) {
             if (rawIp.contains('.')) {
+              // Gửi trực tiếp Unicast tới IP của máy tính (tránh bị Router Wi-Fi chặn gói Broadcast)
+              socket.send(packet, InternetAddress(rawIp), 9);
+              socket.send(packet, InternetAddress(rawIp), 7);
+              socket.send(packet, InternetAddress(rawIp), 9000);
+
               final parts = rawIp.split('.');
               if (parts.length == 4 && (parts[0] == "192" || parts[0] == "10" || parts[0] == "172")) {
                 final subnetBroadcast = "${parts[0]}.${parts[1]}.${parts[2]}.255";
@@ -404,6 +409,7 @@ class ControlProvider extends ChangeNotifier {
       } else if (status.isPaired || status.connected) {
         _isConnected = true;
         _manuallyDisconnected = false;
+        _activePowerAction = null; // Reset trạng thái power action khi máy tính đã bật Online trở lại
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('is_connected', true);
       } else {
@@ -415,6 +421,10 @@ class ControlProvider extends ChangeNotifier {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('mac_address', status.macAddress);
       }
+    } else {
+      // Khi status == null (do laptop đang Sleep/Offline không phản hồi HTTP)
+      // KHÔNG reset _activePowerAction để giữ nguyên trạng thái SLEEPING MÀU VÀNG liên tục!
+      _isConnected = false;
     }
     notifyListeners();
   }
