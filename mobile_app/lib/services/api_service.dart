@@ -103,7 +103,7 @@ class ApiService {
     return null;
   }
 
-  Future<bool> sendControlCommand(String action, [int? value, String mode = "Remote"]) async {
+  Future<bool> sendControlCommand(String action, [dynamic value, String mode = "Remote"]) async {
     try {
       final body = json.encode({
         'device_id': deviceId,
