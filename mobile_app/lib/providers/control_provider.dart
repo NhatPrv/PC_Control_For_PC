@@ -71,18 +71,20 @@ class ControlProvider extends ChangeNotifier {
   }
 
   /// Cho phép Wake-on-LAN khi:
-  /// 1. Không trong chu kỳ Restart
-  /// 2. Máy đang Tắt (Shutdown), Ngủ (Sleep) hoặc Chưa kết nối (Disconnected)
+  /// 1. Máy tính đang KHÔNG KẾT NỐI (Offline / Sleep / Shutdown)
+  /// 2. KHÔNG TRONG CHU KỲ RESTART
   /// 3. Đã có địa chỉ MAC Address hợp lệ
   bool get isAllowWakeOnLan {
     if (_activePowerAction == "restart") return false;
     final macToUse = macAddress;
     if (macToUse.isEmpty || macToUse == "00:00:00:00:00:00") return false;
     
-    if (!_isConnected || _activePowerAction == "shutdown" || _activePowerAction == "sleep") {
-      return true;
+    // Nếu máy tính đang Online và kết nối bình thường ➔ KHÓA NÚT BẬT MÁY (WoL)!
+    if (_isConnected && _activePowerAction == null) {
+      return false;
     }
-    return isSameLanSubnet || isLanConnection;
+
+    return true;
   }
 
   /// Gửi gói tin Magic Packet Wake-on-LAN tới cả Subnet Broadcast (192.168.x.255) và Global Broadcast (255.255.255.255) qua UDP Port 7 & 9
