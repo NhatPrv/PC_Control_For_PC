@@ -301,6 +301,15 @@ class DashboardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<ControlProvider>(
       builder: (context, provider, child) {
+        Color statusColor = const Color(0xFFF43F5E); // Mặc định Đỏ (Disconnected)
+        if (provider.isSleepingState || provider.isShutdownState) {
+          statusColor = Colors.amber; // Màu Vàng cho Sleeping & Shutting down
+        } else if (provider.activePowerAction == "restart") {
+          statusColor = Colors.orangeAccent;
+        } else if (provider.isConnected) {
+          statusColor = const Color(0xFF10B981); // Màu Xanh cho Online
+        }
+
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
@@ -314,9 +323,11 @@ class DashboardHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "PC Control",
-                      style: TextStyle(
+                    Text(
+                      provider.status?.hostname.isNotEmpty == true
+                          ? provider.status!.hostname
+                          : (provider.deviceId.isNotEmpty ? provider.deviceId : "My Windows PC"),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -331,20 +342,18 @@ class DashboardHeader extends StatelessWidget {
                           height: 8,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: provider.isConnected ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
+                            color: statusColor,
                           ),
                         ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            provider.isConnected
-                                ? "Connected: ${provider.serverIp}:${provider.serverPort}"
-                                : "Disconnected",
+                            provider.displayStatusText,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: provider.isConnected ? const Color(0xFF10B981) : const Color(0xFFFDA4AF),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
+                              color: statusColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),

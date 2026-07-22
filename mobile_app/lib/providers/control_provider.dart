@@ -70,6 +70,21 @@ class ControlProvider extends ChangeNotifier {
     return isLanConnection;
   }
 
+  /// Trạng thái đang Sleep
+  bool get isSleepingState => _activePowerAction == "sleep" || _status?.status == "sleeping";
+
+  /// Trạng thái đang Shutdown
+  bool get isShutdownState => _activePowerAction == "shutdown" || _status?.status == "offline" || _status?.status == "shutdown";
+
+  /// Text hiển thị trạng thái chuẩn
+  String get displayStatusText {
+    if (_activePowerAction == "restart") return "Restarting...";
+    if (isSleepingState) return "Sleeping";
+    if (isShutdownState) return "Shutting down";
+    if (_isConnected) return "Online ($serverIp)";
+    return "Disconnected";
+  }
+
   /// Cho phép Wake-on-LAN khi:
   /// 1. Máy tính đang KHÔNG KẾT NỐI (Offline / Sleep / Shutdown)
   /// 2. KHÔNG TRONG CHU KỲ RESTART

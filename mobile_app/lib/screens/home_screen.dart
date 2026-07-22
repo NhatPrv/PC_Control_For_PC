@@ -77,35 +77,51 @@ class HomeScreen extends StatelessWidget {
 
                   return Column(
                     children: [
-                      // BANNER THÔNG BÁO KHÓA CHỨC NĂNG KHI CHƯA KẾT NỐI HOẶC RESTARTING
-                      if (!isConnected || isRestarting) ...[
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                          margin: const EdgeInsets.only(bottom: 20),
-                          decoration: BoxDecoration(
-                            color: (isRestarting ? Colors.orangeAccent : const Color(0xFFF43F5E)).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: (isRestarting ? Colors.orangeAccent : const Color(0xFFF43F5E)).withValues(alpha: 0.3)),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(isRestarting ? Icons.restart_alt : Icons.lock_rounded, color: isRestarting ? Colors.amberAccent : const Color(0xFFFDA4AF), size: 20),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  isRestarting
-                                      ? "Máy tính đang khởi động lại (Restarting)... Đã tạm khóa toàn bộ chức năng."
-                                      : "Đã khóa các chức năng điều khiển. Quét mã QR để kết nối hoặc bấm Bật Máy (WoL).",
-                                  style: TextStyle(
-                                    color: isRestarting ? Colors.amberAccent : const Color(0xFFFDA4AF),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
+                      // BANNER THÔNG BÁO KHÓA CHỨC NĂNG VÀ TRẠNG THÁI
+                      if (!isConnected || isRestarting || provider.isSleepingState || provider.isShutdownState) ...[
+                        Builder(
+                          builder: (context) {
+                            Color bannerColor = const Color(0xFFF43F5E); // Mặc định Đỏ (Disconnected)
+                            IconData bannerIcon = Icons.power_off_rounded;
+                            String bannerMsg = "Đã ngắt kết nối với máy tính (Disconnected). Không thể tương tác điều khiển ngoại trừ Bật Máy (WoL).";
+
+                            if (isRestarting) {
+                              bannerColor = Colors.orangeAccent;
+                              bannerIcon = Icons.restart_alt;
+                              bannerMsg = "Máy tính đang khởi động lại (Restarting)... Đã tạm khóa toàn bộ chức năng.";
+                            } else if (provider.isSleepingState || provider.isShutdownState) {
+                              bannerColor = Colors.amber; // Màu Vàng
+                              bannerIcon = provider.isSleepingState ? Icons.bedtime_rounded : Icons.power_settings_new_rounded;
+                              bannerMsg = "Máy tính ở trạng thái ${provider.displayStatusText} (Màu Vàng). Đã làm mờ các tính năng điều khiển. Bấm Bật Máy (WoL) để kích hoạt.";
+                            }
+
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                              margin: const EdgeInsets.only(bottom: 20),
+                              decoration: BoxDecoration(
+                                color: bannerColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: bannerColor.withValues(alpha: 0.35)),
                               ),
-                            ],
-                          ),
+                              child: Row(
+                                children: [
+                                  Icon(bannerIcon, color: bannerColor, size: 20),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      bannerMsg,
+                                      style: TextStyle(
+                                        color: bannerColor,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
                       ],
 
