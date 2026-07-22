@@ -363,7 +363,9 @@ class ControlProvider extends ChangeNotifier {
         }
       }
 
-      if (status.isPaired || status.connected) {
+      if (_activePowerAction == "sleep" || _activePowerAction == "shutdown") {
+        _isConnected = false;
+      } else if (status.isPaired || status.connected) {
         _isConnected = true;
         _manuallyDisconnected = false;
         final prefs = await SharedPreferences.getInstance();

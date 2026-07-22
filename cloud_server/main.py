@@ -131,9 +131,10 @@ def get_status(device_id: Optional[str] = Query(None)):
             p_mode = sess.get("paired_mode", "Remote")
             break
 
-    # Nếu có Laptop Agent đang kết nối WebSocket thực tế ➔ Luôn ưu tiên giữ trạng thái Paired Active
+    # Nếu có Laptop Agent đang kết nối WebSocket thực tế ➔ Chỉ giữ Paired Active nếu KHÔNG ở trạng thái sleeping/offline
     if target_id in active_laptops and paired_sessions:
-        is_p = True
+        if status_data.get("status") not in ["sleeping", "offline"]:
+            is_p = True
 
     status_data["connected"] = is_p
     status_data["is_paired"] = is_p
@@ -150,11 +151,19 @@ async def send_control(req: ControlRequest):
     if not target_id or target_id not in active_laptops:
         raise HTTPException(status_code=503, detail="No active Laptop Agent connected to AWS EC2")
     
-    # Đánh dấu Session ĐÃ KẾT NỐI THẬT SỰ khi có lệnh từ Điện thoại
-    paired_sessions[target_id] = {
-        "is_paired": True,
-        "paired_mode": req.mode or "Remote"
-    }
+    # Nếu là lệnh sleep hoặc shutdown ➔ HỦY SESSION KẾT NỐI VÀ ĐÁNH DẤU SLEEPING/OFFLINE TỨC THÌ
+    if req.action in ["sleep", "shutdown"]:
+        paired_sessions.pop(target_id, None)
+        if target_id in latest_laptop_statuses:
+            latest_laptop_statuses[target_id]["status"] = "sleeping" if req.action == "sleep" else "offline"
+            latest_laptop_statuses[target_id]["connected"] = False
+            latest_laptop_statuses[target_id]["is_paired"] = False
+    else:
+        # Đánh dấu Session ĐÃ KẾT NỐI THẬT SỰ khi có lệnh từ Điện thoại
+        paired_sessions[target_id] = {
+            "is_paired": True,
+            "paired_mode": req.mode or "Remote"
+        }
     
     ws = active_laptops[target_id]
     command_payload = {
