@@ -324,6 +324,16 @@ class ControlProvider extends ChangeNotifier {
   ]) async {
     await _fetchPhoneWifiIp();
 
+    // Reset cờ kẹt Sleeping / Shutdown khi người dùng chủ động Quét QR / Kết Nối Lại
+    _activePowerAction = null;
+    _manuallyDisconnected = false;
+    _isConnected = true;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('active_power_action');
+    await prefs.setBool('manually_disconnected', false);
+    await prefs.setBool('is_connected', true);
+
     String finalTargetIp = ip;
 
     _serverIp = finalTargetIp;
@@ -361,34 +371,14 @@ class ControlProvider extends ChangeNotifier {
       }
     }
 
-    _isConnected = true;
-    _manuallyDisconnected = false;
-
-    final prefs = await SharedPreferences.getInstance();
     await prefs.setString('server_ip', _serverIp);
     await prefs.setString('laptop_lan_ip', _laptopLanIp);
     await prefs.setInt('server_port', _serverPort);
     await prefs.setString('api_key', _apiKey);
     await prefs.setString('device_id', _deviceId);
     await prefs.setString('device_password', _devicePassword);
-    await prefs.setBool('is_connected', true);
-    await prefs.setBool('manually_disconnected', false);
-    if (mac != null) {
-      await prefs.setString('mac_address', mac);
-    }
 
-    notifyListeners();
-
-    // Bắn lệnh kích hoạt Pairing Session thời gian thực
-    final apiService = ApiService(
-      baseIp: _serverIp,
-      port: _serverPort,
-      apiKey: _apiKey,
-      deviceId: _deviceId,
-      devicePassword: _devicePassword,
-    );
-    await apiService.sendControlCommand("connect");
-    refreshStatus();
+    await refreshStatus();
   }
 
   void startAutoRefresh() {
@@ -437,15 +427,16 @@ class ControlProvider extends ChangeNotifier {
         }
       }
 
-      if (_activePowerAction == "sleep" || _activePowerAction == "shutdown") {
-        _isConnected = false;
-      } else if (status.isPaired || status.connected) {
+      // NẾU PC ĐÃ ONLINE THẬT SỰ (status.connected || status.isPaired) ➔ GIẢI THOÁT KHỎI CHẾ ĐỘ SLEEPING TỨC THÌ!
+      if (status.isPaired || status.connected) {
         _isConnected = true;
         _manuallyDisconnected = false;
-        _activePowerAction = null; // Reset trạng thái power action khi máy tính đã bật Online trở lại
+        _activePowerAction = null; // Gỡ cờ Sleeping ngay lập tức!
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('is_connected', true);
         await prefs.remove('active_power_action');
+      } else if (_activePowerAction == "sleep" || _activePowerAction == "shutdown") {
+        _isConnected = false;
       } else {
         _isConnected = false;
       }
@@ -456,9 +447,10 @@ class ControlProvider extends ChangeNotifier {
         await prefs.setString('mac_address', status.macAddress);
       }
     } else {
-      // Khi status == null (do laptop đang Sleep/Offline không phản hồi HTTP)
-      // KHÔNG reset _activePowerAction để giữ nguyên trạng thái SLEEPING MÀU VÀNG liên tục!
-      _isConnected = false;
+      // Khi status == null (do laptop đang Sleep/Offline thực sự)
+      if (_activePowerAction != "sleep" && _activePowerAction != "shutdown") {
+        _isConnected = false;
+      }
     }
     notifyListeners();
   }
