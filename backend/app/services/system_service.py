@@ -265,7 +265,13 @@ class SystemService:
             elif action == 'restart':
                 os.system("shutdown /r /t 2")
             elif action == 'sleep':
-                os.system("rundll32.exe powrprof.dll,SetSuspendState 0,1,0")
+                try:
+                    import ctypes
+                    # SetSuspendState(bHibernate=False, bForceCritical=False, bDisableWakeEvent=False)
+                    # Giúp Windows đi vào chế độ SLEEP THẬT (Đèn nguồn nhấp nháy trắng, mở cổng nhận WoL)
+                    ctypes.windll.powrprof.SetSuspendState(False, False, False)
+                except Exception:
+                    os.system("powershell -Command \"Add-Type -Assembly System.Windows.Forms; [System.Windows.Forms.Application]::SetSuspendState([System.Windows.Forms.PowerState]::Suspend, $false, $false)\"")
             else:
                 return False
             return True
