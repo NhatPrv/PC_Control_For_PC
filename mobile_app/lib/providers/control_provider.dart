@@ -109,14 +109,22 @@ class ControlProvider extends ChangeNotifier {
       socket.send(packet, InternetAddress('255.255.255.255'), 9);
       socket.send(packet, InternetAddress('255.255.255.255'), 7);
 
-      // 2. Gửi tới Subnet Broadcast (VD: 192.168.100.255 hoặc 192.168.1.255)
-      final ipToUse = _laptopLanIp.isNotEmpty ? _laptopLanIp : _serverIp;
-      if (ipToUse.contains('.')) {
-        final parts = ipToUse.split('.');
-        if (parts.length == 4) {
-          final subnetBroadcast = "${parts[0]}.${parts[1]}.${parts[2]}.255";
-          socket.send(packet, InternetAddress(subnetBroadcast), 9);
-          socket.send(packet, InternetAddress(subnetBroadcast), 7);
+      // 2. Gửi tới tất cả Subnet Broadcast tiềm năng (Phone Wi-Fi IP, Laptop LAN IP)
+      final candidateIps = <String>{
+        if (_phoneWifiIp != null && _phoneWifiIp!.isNotEmpty) _phoneWifiIp!,
+        if (_laptopLanIp.isNotEmpty) _laptopLanIp,
+        if (_serverIp.isNotEmpty) _serverIp,
+      };
+
+      for (final rawIp in candidateIps) {
+        if (rawIp.contains('.')) {
+          final parts = rawIp.split('.');
+          if (parts.length == 4 && (parts[0] == "192" || parts[0] == "10" || parts[0] == "172")) {
+            final subnetBroadcast = "${parts[0]}.${parts[1]}.${parts[2]}.255";
+            socket.send(packet, InternetAddress(subnetBroadcast), 9);
+            socket.send(packet, InternetAddress(subnetBroadcast), 7);
+            print("⚡ Broadcasted WoL Magic Packet to Subnet: $subnetBroadcast (Ports 7 & 9)");
+          }
         }
       }
 
