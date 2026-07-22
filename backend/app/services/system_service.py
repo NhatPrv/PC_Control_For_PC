@@ -38,29 +38,22 @@ class SystemService:
 
     @staticmethod
     def get_mac_address() -> str:
-        """Lấy địa chỉ MAC Address card mạng phần cứng thực tế (Wi-Fi/Ethernet) để phục vụ Wake-on-LAN."""
+        """Lấy danh sách địa chỉ MAC Address card mạng phần cứng thực tế (Wi-Fi/Ethernet) để phục vụ Wake-on-LAN."""
         try:
+            macs = []
             addrs_map = psutil.net_if_addrs()
             
-            # Ưu tiên 1: Card mạng Wi-Fi hoặc Ethernet vật lý thật
             for iface, addrs in addrs_map.items():
                 name_lower = iface.lower()
-                if any(v in name_lower for v in ["wi-fi", "wifi", "ethernet"]) and not any(v in name_lower for v in ["radmin", "vpn", "virtual", "vbox", "vethernet", "vmware", "teredo", "pseudo"]):
+                if not any(v in name_lower for v in ["radmin", "vpn", "virtual", "vbox", "vethernet", "vmware", "teredo", "pseudo", "loopback"]):
                     for addr in addrs:
                         if addr.family == psutil.AF_LINK and addr.address:
                             mac = addr.address.replace("-", ":").upper()
-                            if mac != "00:00:00:00:00:00" and not mac.startswith("02:50"):
-                                return mac
+                            if mac != "00:00:00:00:00:00" and not mac.startswith("02:50") and mac not in macs:
+                                macs.append(mac)
 
-            # Ưu tiên 2: Bất kỳ card nào không phải virtual/vpn/radmin
-            for iface, addrs in addrs_map.items():
-                name_lower = iface.lower()
-                if not any(v in name_lower for v in ["loopback", "vethernet", "vmware", "radmin", "vpn", "vbox", "teredo", "pseudo"]):
-                    for addr in addrs:
-                        if addr.family == psutil.AF_LINK and addr.address:
-                            mac = addr.address.replace("-", ":").upper()
-                            if mac != "00:00:00:00:00:00" and not mac.startswith("02:50"):
-                                return mac
+            if macs:
+                return ",".join(macs)
 
             return "00:00:00:00:00:00"
         except Exception:
