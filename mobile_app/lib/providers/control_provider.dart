@@ -256,6 +256,31 @@ class ControlProvider extends ChangeNotifier {
     }
   }
 
+  String _windowsPin = "";
+  String get windowsPin => _windowsPin;
+
+  Future<void> updateWindowsPin(String pin) async {
+    _windowsPin = pin;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('windows_pin', pin);
+    notifyListeners();
+  }
+
+  Future<bool> unlockWindows([String? customPin]) async {
+    final pinToUse = (customPin != null && customPin.isNotEmpty) ? customPin : _windowsPin;
+    if (pinToUse.isEmpty) return false;
+
+    final apiService = ApiService(
+      baseIp: _serverIp,
+      port: _serverPort,
+      apiKey: _apiKey,
+      deviceId: _deviceId,
+      devicePassword: _devicePassword,
+    );
+
+    return await apiService.sendControlCommand("unlock", pinToUse);
+  }
+
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     _serverIp = prefs.getString('server_ip') ?? "18.143.90.229";
@@ -265,6 +290,7 @@ class ControlProvider extends ChangeNotifier {
     _deviceId = prefs.getString('device_id') ?? "default_device";
     _devicePassword = prefs.getString('device_password') ?? "";
     _macAddress = prefs.getString('mac_address') ?? "";
+    _windowsPin = prefs.getString('windows_pin') ?? "";
     _activePowerAction = prefs.getString('active_power_action');
     _isConnected = prefs.getBool('is_connected') ?? false;
     _manuallyDisconnected = prefs.getBool('manually_disconnected') ?? false;

@@ -295,3 +295,43 @@ class SystemService:
                 return False
             return True
         return False
+
+    @staticmethod
+    def unlock_windows(password: str) -> bool:
+        """Mô phỏng gõ phím để mở khóa màn hình đăng nhập Windows từ xa."""
+        try:
+            import time
+            # 1. Bấm phím Space / Enter để kích hoạt màn hình nhập PIN/Mật khẩu
+            ps_wake_lock = """
+            $w = New-Object -ComObject wscript.shell;
+            $w.SendKeys(' ');
+            Start-Sleep -Milliseconds 600;
+            """
+            subprocess.run(["powershell", "-Command", ps_wake_lock], check=True)
+
+            # 2. Gõ mật khẩu / PIN rồi bấm Enter
+            if password:
+                # Thoát ký tự đặc biệt trong SendKeys của PowerShell
+                escaped_pass = (
+                    password.replace("{", "{{}")
+                    .replace("}", "}}")
+                    .replace("+", "{+}")
+                    .replace("^", "{^}")
+                    .replace("%", "{%}")
+                    .replace("~", "{~}")
+                    .replace("(", "{(}")
+                    .replace(")", "{)}")
+                )
+                ps_type_pass = f"""
+                $w = New-Object -ComObject wscript.shell;
+                $w.SendKeys('{escaped_pass}');
+                Start-Sleep -Milliseconds 200;
+                $w.SendKeys('{{ENTER}}');
+                """
+                subprocess.run(["powershell", "-Command", ps_type_pass], check=True)
+                print("[Unlock] Sent PIN/Password to Windows logon screen successfully.")
+                return True
+            return False
+        except Exception as e:
+            print(f"[Unlock] Failed to type unlock password: {e}")
+            return False

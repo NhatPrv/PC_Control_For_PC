@@ -240,6 +240,8 @@ class HomeScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
 
+                          const SizedBox(width: 8),
+
                           // NÚT WAKE-ON-LAN (MỞ KHI SLEEP/SHUTDOWN/CHƯA KẾT NỐI, KHÓA KHI RESTARTING)
                           Expanded(
                             child: Opacity(
@@ -269,6 +271,23 @@ class HomeScreen extends StatelessWidget {
                               ),
                             ),
                           ),
+                          const SizedBox(width: 8),
+
+                          // NÚT 🔓 MỞ KHÓA PC (GỬI PIN / MẬT KHẨU ĐĂNG NHẬP WINDOWS)
+                          Expanded(
+                            child: Opacity(
+                              opacity: allowControls ? 1.0 : 0.45,
+                              child: IgnorePointer(
+                                ignoring: !allowControls,
+                                child: PowerActionButton(
+                                  label: "Mở Khóa",
+                                  icon: Icons.lock_open_rounded,
+                                  accentColor: Colors.cyanAccent,
+                                  onClick: () => _showUnlockDialog(context, provider),
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -278,6 +297,87 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showUnlockDialog(BuildContext context, ControlProvider provider) {
+    final pinController = TextEditingController(text: provider.windowsPin);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.lock_open_rounded, color: Colors.cyanAccent),
+            SizedBox(width: 10),
+            Text("🔓 Mở Khóa Windows", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Nhập mã PIN hoặc Mật khẩu đăng nhập Windows của bạn để tự động gõ mở khóa:",
+              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: pinController,
+              obscureText: true,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: "PIN / Mật khẩu Windows",
+                labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                prefixIcon: const Icon(Icons.key_rounded, color: Colors.cyanAccent),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(color: Color(0xFF334155)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(color: Colors.cyanAccent),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Hủy", style: TextStyle(color: Color(0xFF94A3B8))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.cyan,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () async {
+              final pin = pinController.text.trim();
+              if (pin.isNotEmpty) {
+                await provider.updateWindowsPin(pin);
+                final success = await provider.unlockWindows(pin);
+                if (ctx.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: success ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
+                      content: Text(
+                        success
+                            ? "🔓 Đã gửi lệnh tự động mở khóa PIN/Mật khẩu tới Windows!"
+                            : "❌ Lỗi khi gửi lệnh mở khóa.",
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text("Gửi Mở Khóa", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }

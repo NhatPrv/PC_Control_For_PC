@@ -83,6 +83,9 @@ async def start_agent():
                                     print(f"[Agent] Session Activated & Paired with Mobile App!")
                                 elif action in ["shutdown", "restart", "sleep"]:
                                     SystemService.execute_power_action(action)
+                                elif action == "unlock":
+                                    pass_val = str(val) if val is not None else ""
+                                    SystemService.unlock_windows(pass_val)
                                 elif action == "brightness" and val is not None:
                                     SystemService.set_brightness(val)
                                 elif action == "volume" and val is not None:
