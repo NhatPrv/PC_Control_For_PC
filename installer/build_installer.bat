@@ -3,6 +3,8 @@ echo ====================================================================
 echo BUILDING PC CONTROL ALL-IN-ONE (WINDOWS SETUP .EXE AND ANDROID .APK)
 echo ====================================================================
 
+set "PATH=C:\flutter\bin;%PATH%"
+
 echo 1/3. Fetching dependencies and building Flutter Windows Executable...
 cd ..\mobile_app
 call flutter clean
