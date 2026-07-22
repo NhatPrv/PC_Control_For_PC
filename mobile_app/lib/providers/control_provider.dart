@@ -377,6 +377,21 @@ class ControlProvider extends ChangeNotifier {
     await prefs.setString('api_key', _apiKey);
     await prefs.setString('device_id', _deviceId);
     await prefs.setString('device_password', _devicePassword);
+    if (mac != null && mac.isNotEmpty) {
+      await prefs.setString('mac_address', mac);
+    }
+
+    notifyListeners();
+
+    // BẮN LỆNH KÍCH HOẠT PAIRING SESSION THỜI GIAN THỰC ĐẾN CLOUD SERVER
+    final apiService = ApiService(
+      baseIp: _serverIp,
+      port: _serverPort,
+      apiKey: _apiKey,
+      deviceId: _deviceId,
+      devicePassword: _devicePassword,
+    );
+    await apiService.sendControlCommand("connect");
 
     await refreshStatus();
   }
@@ -427,8 +442,8 @@ class ControlProvider extends ChangeNotifier {
         }
       }
 
-      // NẾU PC ĐÃ ONLINE THẬT SỰ (status.connected || status.isPaired) ➔ GIẢI THOÁT KHỎI CHẾ ĐỘ SLEEPING TỨC THÌ!
-      if (status.isPaired || status.connected) {
+      // NẾU NHẬN ĐƯỢC STATUS TỪ PC KHÔNG Ở TRẠNG THÁI SLEEPING/OFFLINE ➔ DUY TRÌ KẾT NỐI ONLINE
+      if ((status.os.isNotEmpty && status.os != "Unknown") || status.isPaired || status.connected) {
         _isConnected = true;
         _manuallyDisconnected = false;
         _activePowerAction = null; // Gỡ cờ Sleeping ngay lập tức!
