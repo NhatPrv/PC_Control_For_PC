@@ -429,6 +429,9 @@ class ControlProvider extends ChangeNotifier {
           devicePassword: _devicePassword,
         );
         status = await lanApiService.getStatus();
+        if (status != null) {
+          _serverIp = _laptopLanIp; // Đảm bảo các lệnh điều khiển tiếp theo gửi trực tiếp tới LAN IP nội bộ
+        }
       }
 
       // Nếu không nối được qua LAN (do khác Wi-Fi hoặc ra ngoài đường) ➔ Mới dùng Server Cloud Relay

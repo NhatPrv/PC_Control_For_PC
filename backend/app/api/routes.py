@@ -25,7 +25,11 @@ def get_status():
     """Lấy toàn bộ thông số tải hệ thống, dung lượng pin, âm lượng và độ sáng."""
     global current_paired_phone
     status_data = SystemService.get_system_status()
-    is_active = current_paired_phone is not None
+    # Nếu điện thoại gửi HTTP GET /api/status qua LAN thành công ➔ Tự động xác nhận LAN Session hợp lệ!
+    if current_paired_phone != "DISCONNECTED":
+        current_paired_phone = "Mobile Device (LAN)"
+    
+    is_active = current_paired_phone == "Mobile Device (LAN)" or (current_paired_phone is not None and current_paired_phone != "DISCONNECTED")
     status_data["connected"] = is_active
     status_data["is_paired"] = is_active
     status_data["paired_mode"] = "LAN" if is_active else "Standby"
